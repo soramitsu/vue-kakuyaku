@@ -1,6 +1,6 @@
 # @vue-swr-composable/core
 
-[Stale-while-revalidate](https://datatracker.ietf.org/doc/html/rfc5861#section-3) data caching pattern implementation.
+[Stale-while-revalidate](https://datatracker.ietf.org/doc/html/rfc5861#section-3) data caching pattern for Vue 3.
 
 ## Features
 
@@ -19,8 +19,8 @@
 
 Some logic is quite simple to be moved into lightweight plugins:
 
-- **Refresh On Capture** - refreshes resource when composable is initialized again and resource is already presented in the store.
-- **Error Retry** - refetch resource in case its fetch is errored. Retries N times with M interval.
+- 🔄 **Refresh On Capture** - refreshes resource when composable is initialized again and resource is already presented in the store.
+- ☝️ **Error Retry** - refetch resource in case its fetch is errored. Retries N times with M interval.
 
 ### Not yet implemented extensions
 
@@ -196,5 +196,3 @@ const { resource } = useSwr({
 ```
 
 Composable will be not activated until `fetch` computed resolves to function or object. Until that, `resource.value` will be `null`.
-
-###
