@@ -10,7 +10,9 @@
     "build:main": "pnpm --filter core run build",
     "api:run": "api-extractor run -c ./packages/core/api-extractor.json",
     "api:run:local": "pnpm run api:run -l",
-    "publish-all": "pnpm publish packages/core"
+    "publish-all": "pnpm publish packages/core",
+    "format": "prettier '**/**.{js,ts,json,md}'",
+    "format:check": "pnpm format --check"
   },
   "devDependencies": {
     "@microsoft/api-extractor": "^7.23.2",
