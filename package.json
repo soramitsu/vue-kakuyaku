@@ -7,7 +7,7 @@
     "test:core-ci": "pnpm --filter core run test:ci ",
     "lint": "eslint --ext ts .",
     "build": "run-s build:main api:run",
-    "build:main": "pnpm --filter core run build ",
+    "build:main": "pnpm --filter core run build",
     "api:run": "api-extractor run -c ./packages/core/api-extractor.json",
     "api:run:local": "pnpm run api:run -l",
     "publish-all": "pnpm publish packages/core"

@@ -1,6 +1,15 @@
 {
   "name": "@vue-swr-composable/core",
   "version": "0.1.0",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/soramitsu/vue-swr-composable.git"
+  },
+  "bugs": {
+    "url": "https://github.com/soramitsu/vue-swr-composable/issues"
+  },
+  "homepage": "https://github.com/soramitsu/vue-swr-composable/tree/master/packages/core#readme",
   "main": "dist/lib.cjs.js",
   "module": "dist/lib.es.js",
   "types": "dist/lib.d.ts",
@@ -10,6 +19,9 @@
       "require": "./dist/lib.umd.js"
     }
   },
+  "files": [
+    "dist"
+  ],
   "keywords": [
     "vue",
     "swr",
