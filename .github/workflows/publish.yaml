@@ -3,7 +3,7 @@ on:
   push:
     branches: [master]
 jobs:
-  build:
+  build-and-publish:
     runs-on: ubuntu-latest
 
     steps:
@@ -50,6 +50,6 @@ jobs:
         run: pnpm build
 
       - name: Publish packages
-        run: pnpm publish
+        run: pnpm publish-all
         env:
           NPM_TOKEN: ${{ secrets.NPM_TOKEN }}
