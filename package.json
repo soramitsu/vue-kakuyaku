@@ -1,0 +1,30 @@
+{
+  "name": "@vue-swr-composable/monorepo",
+  "private": true,
+  "scripts": {
+    "test:unit": "vitest run",
+    "test:ci": "run-s lint test:unit test:core-ci",
+    "test:core-ci": "pnpm --filter core run test:ci ",
+    "lint": "eslint --ext ts .",
+    "build": "run-s build:main api:run",
+    "build:main": "pnpm --filter core run build",
+    "api:run": "api-extractor run -c ./packages/core/api-extractor.json",
+    "api:run:local": "pnpm run api:run -l",
+    "publish-all": "pnpm publish packages/core",
+    "format": "prettier '**/**.{js,ts,json,md}'",
+    "format:check": "pnpm format --check"
+  },
+  "devDependencies": {
+    "@microsoft/api-extractor": "^7.23.2",
+    "@typescript-eslint/eslint-plugin": "^5.22.0",
+    "@typescript-eslint/parser": "^5.22.0",
+    "eslint": "^7",
+    "eslint-config-alloy": "^4.5.1",
+    "eslint-plugin-cypress": "^2.12.1",
+    "npm-run-all": "^4.1.5",
+    "prettier": "^2.6.2",
+    "prettier-eslint": "^14.0.2",
+    "typescript": "^4.6.4",
+    "vitest": "^0.12.0"
+  }
+}

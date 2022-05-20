@@ -1,0 +1,56 @@
+{
+  "name": "@vue-swr-composable/core",
+  "version": "0.1.0",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/soramitsu/vue-swr-composable.git"
+  },
+  "bugs": {
+    "url": "https://github.com/soramitsu/vue-swr-composable/issues"
+  },
+  "homepage": "https://github.com/soramitsu/vue-swr-composable/tree/master/packages/core#readme",
+  "main": "dist/lib.cjs.js",
+  "module": "dist/lib.es.js",
+  "types": "dist/lib.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/lib.es.js",
+      "require": "./dist/lib.umd.js"
+    }
+  },
+  "files": [
+    "dist"
+  ],
+  "keywords": [
+    "vue",
+    "swr",
+    "stale-while-revalidate",
+    "composition",
+    "composition-api",
+    "fetch",
+    "data",
+    "async"
+  ],
+  "scripts": {
+    "cy": "cypress open-ct -b firefox",
+    "test:ci": "cypress run-ct",
+    "build": "run-s build:dts build:js",
+    "build:dts": "tsc --build --clean && tsc --declaration --emitDeclarationOnly",
+    "build:js": "vite build"
+  },
+  "dependencies": {
+    "@vueuse/core": "^8",
+    "vue": "^3.2"
+  },
+  "devDependencies": {
+    "@cypress/vite-dev-server": "^2.2.2",
+    "@cypress/vue": "^3.1.2",
+    "@unocss/reset": "^0.33.1",
+    "@vue/test-utils": "^2.0.0-rc.21",
+    "cypress": "^9.6.0",
+    "type-fest": "^2.12.2",
+    "unocss": "^0.33.1",
+    "vite": "^2.9.8"
+  }
+}
