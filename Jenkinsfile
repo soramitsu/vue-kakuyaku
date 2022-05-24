@@ -1,0 +1,10 @@
+@Library('jenkins-library' ) _
+
+def pipeline = new org.js.LibPipeline(steps: this,
+  buildDockerImage: 'docker.soramitsu.co.jp/build-tools/node:16-ubuntu-cypress',
+  packageManager: 'pnpm',
+  testCmds: ['pnpm test:ci'],
+  pushCmds: ['pnpm publish-all'],
+  npmRegistries: [:],
+  )
+pipeline.runPipeline()
