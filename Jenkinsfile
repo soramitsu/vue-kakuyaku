@@ -3,7 +3,7 @@
 def pipeline = new org.js.LibPipeline(steps: this,
   buildDockerImage: 'docker.soramitsu.co.jp/build-tools/node:16-ubuntu-cypress',
   packageManager: 'pnpm',
-  testCmds: ['pnpm test:ci'],
+  testCmds: ['pnpm format:check', 'pnpm test:ci'],
   pushCmds: ['pnpm publish-all'],
   npmRegistries: [:],
   sonarProjectName: 'vue-swr-composable',
