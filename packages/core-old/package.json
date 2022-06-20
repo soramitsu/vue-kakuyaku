@@ -41,7 +41,7 @@
   },
   "dependencies": {
     "@vueuse/core": "^8",
-    "vue": "^3.2"
+    "vue": "3.2.37"
   },
   "devDependencies": {
     "@cypress/vite-dev-server": "^2.2.2",
