@@ -1,4 +1,4 @@
-import { Ref, watch, shallowRef, onScopeDispose, markRaw, shallowReactive, ref, unref } from 'vue'
+import { Ref, watch, shallowRef, onScopeDispose, markRaw, shallowReactive, ref, unref, getCurrentScope } from 'vue'
 import { MaybeRef, useIntervalFn } from '@vueuse/core'
 
 /**
@@ -63,20 +63,17 @@ function stateRaw<T extends TaskState<any>>(state: T): T {
   return markRaw(state)
 }
 
-/**
- * Freezed `uninit` state.
- */
-export const STATE_UNINIT = Object.freeze(stateRaw({ kind: 'uninit' }))
+function defineState<T extends TaskState<any>>(state: T): T {
+  return state
+}
 
-/**
- * Freezed `pending` state.
- */
-export const STATE_PENDING = Object.freeze(stateRaw({ kind: 'pending' }))
+const STATE_UNINIT_RAW = Object.freeze(stateRaw({ kind: 'uninit' }))
 
-/**
- * Freezed `aborted` state.
- */
-export const STATE_ABORTED = Object.freeze(stateRaw({ kind: 'aborted' }))
+const STATE_PENDING_RAW = Object.freeze(stateRaw({ kind: 'pending' }))
+
+const STATE_ABORTED = Object.freeze(defineState({ kind: 'aborted' }))
+
+const STATE_ABORTED_RAW = Object.freeze(stateRaw({ kind: 'aborted' }))
 
 /**
  * Simplified version of [`AbortController`](https://developer.mozilla.org/en-US/docs/Web/API/AbortController)
@@ -102,49 +99,42 @@ class AbortHandle {
   }
 }
 
-/**
- * Stateless abstraction around
- */
-export interface BareTask<T> {
-  run: () => Promise<BareTaskRunResult<T>>
-  abort: () => void
-}
-
 export type BareTaskRunResult<T> = TaskStateAborted | TaskResult<T>
 
 /**
- * Create a stateless (thus reactivity-free) task. Useful even out of scope of Vue Reactivity.
- * @param fn
- * @returns
+ * Stateless abstraction around **redoable headless async operation**.
  */
-export function createBareTask<T>(fn: TaskFn<T>): BareTask<T> {
-  let active: null | { abortHandle: AbortHandle; promise: Promise<unknown> } = null
+export class BareTask<T> {
+  #active: null | { abortHandle: AbortHandle; promise: Promise<unknown> } = null
+  #fn: TaskFn<T>
 
-  function run(): Promise<BareTaskRunResult<T>> {
-    abort()
+  public constructor(fn: TaskFn<T>) {
+    this.#fn = fn
+  }
+
+  public run(): Promise<BareTaskRunResult<T>> {
+    this.abort()
 
     const abortHandle = new AbortHandle()
 
     const promise = new Promise<BareTaskRunResult<T>>((resolve) => {
       abortHandle.onAbort(() => resolve(STATE_ABORTED))
-      fn(abortHandle.onAbort)
+      this.#fn(abortHandle.onAbort)
         .then((result) => resolve({ kind: 'ok', result }))
         .catch((error) => resolve({ kind: 'err', error }))
     })
 
-    active = { promise, abortHandle }
+    this.#active = { promise, abortHandle }
 
     return promise
   }
 
-  function abort() {
-    if (active) {
-      active.abortHandle.abort()
-      active = null
+  public abort() {
+    if (this.#active) {
+      this.#active.abortHandle.abort()
+      this.#active = null
     }
   }
-
-  return { run, abort }
 }
 
 /**
@@ -164,7 +154,7 @@ export interface Task<T> {
    * Atomic task state
    */
   state: TaskState<T>
-  run: () => void
+  run: () => Promise<BareTaskRunResult<T>>
   abort: () => void
 }
 
@@ -234,24 +224,32 @@ export interface Task<T> {
  *   and {@link TaskResult<T>}
  */
 export function useTask<T>(fn: TaskFn<T>): Task<T> {
-  const bare = createBareTask(fn)
-  const { abort } = bare
+  const bare = new BareTask(fn)
+  const abort = bare.abort.bind(bare)
+  let lastRun: null | Promise<unknown> = null
 
   const task: Task<T> = shallowReactive({
-    state: STATE_UNINIT,
+    state: STATE_UNINIT_RAW,
     run,
     abort: abort,
   })
 
-  function run() {
+  function run(): Promise<BareTaskRunResult<T>> {
     abort()
-    task.state = STATE_PENDING
-    bare.run().then((result) => {
-      task.state = result
+    task.state = STATE_PENDING_RAW
+
+    const thisPromise = bare.run().then((result) => {
+      if (lastRun === thisPromise) {
+        task.state = result.kind === 'aborted' ? STATE_ABORTED_RAW : markRaw(result)
+      }
+      return result
     })
+    lastRun = thisPromise
+
+    return thisPromise
   }
 
-  onScopeDispose(abort)
+  getCurrentScope() && onScopeDispose(abort)
 
   return task
 }
