@@ -102,7 +102,7 @@ class AbortHandle {
 export type BareTaskRunResult<T> = TaskStateAborted | TaskResult<T>
 
 /**
- * Stateless abstraction around **redoable headless async operation**.
+ * State**less** abstraction around redoable headless async operation.
  */
 export class BareTask<T> {
   #active: null | { abortHandle: AbortHandle; promise: Promise<unknown> } = null
@@ -138,7 +138,7 @@ export class BareTask<T> {
 }
 
 /**
- * Statefull abstraction around **redoable headless async operation**.
+ * State**full** abstraction around redoable headless async operation.
  *
  * What does it mean:
  *
