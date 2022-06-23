@@ -40,7 +40,7 @@
     "build:js": "vite build"
   },
   "dependencies": {
-    "@vueuse/core": "^8",
+    "@vueuse/core": "^8.7.4",
     "vue": "3.2.37"
   },
   "devDependencies": {

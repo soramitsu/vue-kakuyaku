@@ -1,6 +1,14 @@
 import { computed, reactive, ref, watch, Ref, onScopeDispose, shallowRef } from 'vue'
-import { Task, useErrorRetry, useInertState, useScope, useTask, useDanglingScope, TaskInertState } from './lib'
-import { useStaleWhileRevalidate, StateExpanded, Storage } from '../../swr/src/lib'
+import {
+  Task,
+  useErrorRetry,
+  useStaleIfErrorState,
+  useScope,
+  useTask,
+  useDanglingScope,
+  TaskStaleIfErrorState,
+} from './lib'
+// import { useStaleWhileRevalidate, StateExpanded, Storage } from '../../swr/src/lib'
 
 async function delay(ms: number): Promise<void> {
   // ...
@@ -10,7 +18,7 @@ function doing_async_action() {
   const task = useTask(async () => {
     await delay(500)
   })
-  const inert = useInertState(task)
+  const inert = useStaleIfErrorState(task)
 
   const pending = computed<boolean>(() => inert.pending)
 
@@ -108,7 +116,7 @@ function submit_form() {
     // ...
   }
 
-  const dangling = useDanglingScope<{ task: Task<void>; inert: TaskInertState<void> }>()
+  const dangling = useDanglingScope<{ task: Task<void>; inert: TaskStaleIfErrorState<void> }>()
 
   const danglingTask = computed<Task<void> | undefined>(() => dangling.scope.value?.setup.task)
   const isPending = computed(() => dangling.scope.value?.setup.inert.pending ?? false)
@@ -116,9 +124,51 @@ function submit_form() {
   function clickSubmit(params: { age: number; sex: 'm' | 'f' }) {
     dangling.setup(() => {
       const task = useTask(() => doSubmit(params.age, params.sex))
-      const inert = useInertState(task)
+      const inert = useStaleIfErrorState(task)
       useErrorRetry(task)
       return { task, inert }
     })
   }
 }
+
+const task = useTask(async (onAbort) => {
+  // do async stuff...
+  await delay(40)
+
+  // handle abort
+  onAbort(() => {
+    // ...
+  })
+
+  // return something (or nothing)
+  return 20
+})
+
+watch(
+  () => task.state,
+  (state) => {
+    if (state.kind === 'ok') {
+      console.log(state.result)
+    } else if (state.kind === 'err') {
+      console.error(state.error)
+    } else if (state.kind === 'pending') {
+      console.log('pending...')
+    }
+
+    // also uninint & aborted
+  },
+)
+
+// just run
+task.run()
+
+// abort pending & run new task
+task.run()
+
+// run and wait for exactly this run
+// result is ok, err or aborted
+const result = await task.run()
+
+// just abort
+// auto call on scope dispose
+task.abort()

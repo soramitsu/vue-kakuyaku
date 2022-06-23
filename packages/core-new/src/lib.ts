@@ -1,4 +1,17 @@
-import { Ref, watch, shallowRef, onScopeDispose, markRaw, shallowReactive, ref, unref, getCurrentScope } from 'vue'
+import {
+  Ref,
+  watch,
+  shallowRef,
+  onScopeDispose,
+  markRaw,
+  shallowReactive,
+  ref,
+  unref,
+  getCurrentScope,
+  EffectScope,
+  WatchStopHandle,
+  WatchOptions,
+} from 'vue'
 import { MaybeRef, useIntervalFn } from '@vueuse/core'
 
 /**
@@ -147,7 +160,7 @@ export class BareTask<T> {
  * - **redoable** - operation could be re-run, which allows to build useful utilities around it
  *
  * `Task` stores its current, *atomic* state only. It doesn't store it's last result or error even if
- * it is pending at the moment. You can achieve it with utilities like {@link usePassiveState} or {@link useLastTaskResult}.
+ * it is pending at the moment. You can achieve it with utilities like {@link useStaleIfErrorState} or {@link useLastTaskResult}.
  */
 export interface Task<T> {
   /**
@@ -216,7 +229,7 @@ export interface Task<T> {
  * ## Useful utilities
  *
  * - {@link useLastTaskResult}
- * - {@link usePassiveState}
+ * - {@link useStaleIfErrorState}
  * - {@link useErrorRetry}
  * - {@link useScope} - when you need to conditionaly **setup** a task
  * - {@link useDanglingScope} - when you need to setup a task, but later, e.g. on some event
@@ -386,35 +399,27 @@ export function useDanglingScope<T>(): DanglingScope<T> {}
 
 export type Maybe<T> = null | { some: T }
 
-/**
- * It is *super* because it stores task's result, error and pending states simultaneously.
- */
-export interface TaskSuperState<T> {
+export interface TaskStaleIfErrorState<T> {
   result: Maybe<T>
   error: Maybe<unknown>
   pending: boolean
+  fresh: boolean
 }
 
-export function stateToSuper<T>(state: TaskState<T>): TaskSuperState<T> {
-  return {
-    result: state.kind === 'ok' ? { some: state.result } : null,
-    error: state.kind === 'err' ? { some: state.error } : null,
-    pending: state.kind === 'pending',
-  }
-}
-
-/**
- * Creates a reactive multi state that is *passively* syncronized with task's atomic state.
- * *Passive state* means it stores last task result until it succeed again.
- */
-export function usePassiveState<T>(task: Task<T>): TaskSuperState<T> {
-  const state: TaskSuperState<T> = shallowReactive(stateToSuper(task.state))
+export function useStaleIfErrorState<T>(task: Task<T>): TaskStaleIfErrorState<T> {
+  const state: TaskStaleIfErrorState<T> = shallowReactive({
+    result: task.state.kind === 'ok' ? { some: task.state.result } : null,
+    error: task.state.kind === 'err' ? { some: task.state.error } : null,
+    pending: task.state.kind === 'pending',
+    fresh: task.state.kind === 'ok',
+  })
 
   watch(
     () => task.state,
     (val) => {
       if (val.kind === 'pending') {
         state.pending = true
+        state.fresh = false
       } else {
         state.pending = false
 
@@ -423,6 +428,7 @@ export function usePassiveState<T>(task: Task<T>): TaskSuperState<T> {
         } else if (val.kind === 'ok') {
           state.result = markRaw({ some: val.result })
           state.error = null
+          state.fresh = true
         }
       }
     },
@@ -432,11 +438,6 @@ export function usePassiveState<T>(task: Task<T>): TaskSuperState<T> {
   return state
 }
 
-/**
- *
- * @param task
- * @returns
- */
 export function useLastTaskResult<T>(task: Task<T>): Ref<null | TaskResult<T>> {
   const result = shallowRef<null | TaskResult<T>>(null)
 
@@ -453,7 +454,7 @@ export function useLastTaskResult<T>(task: Task<T>): Ref<null | TaskResult<T>> {
   return result
 }
 
-export interface ErrorRetryParams {
+export interface ErrorRetryOptions {
   /**
    * How many times to retry
    *
@@ -471,31 +472,99 @@ export interface ErrorRetryParams {
 const DEFAULT_ERR_RETRY_INTERVAL = 5_000
 const DEFAULT_ERR_RETRY_COUNT = 5
 
-export function useErrorRetry(task: Task<any>, params?: ErrorRetryParams): void {
+export function useErrorRetry(
+  task: Task<any>,
+  options?: ErrorRetryOptions,
+): {
+  reset: () => void
+  retries: Ref<number>
+} {
   const lastResult = useLastTaskResult(task)
   const retriesCount = ref(0)
+
+  function resetCounter() {
+    retriesCount.value = 0
+  }
 
   const refreshInterval = useIntervalFn(
     () => {
       retriesCount.value++
       task.run()
     },
-    params?.interval ?? DEFAULT_ERR_RETRY_INTERVAL,
+    options?.interval ?? DEFAULT_ERR_RETRY_INTERVAL,
     {
       immediate: false,
     },
   )
 
   watch(
-    () => lastResult.value?.kind === 'err' && retriesCount.value < (unref(params?.count) ?? DEFAULT_ERR_RETRY_COUNT),
+    () => lastResult.value?.kind === 'err' && retriesCount.value < (unref(options?.count) ?? DEFAULT_ERR_RETRY_COUNT),
     (doRetries) => {
       if (doRetries) {
         refreshInterval.resume()
       } else {
-        retriesCount.value = 0
+        resetCounter()
         refreshInterval.pause()
       }
     },
     { immediate: true },
   )
+
+  return { reset: resetCounter, retries: retriesCount }
+}
+
+export function useDelayedPending(task: Task<unknown>): Ref<boolean> {}
+
+export function useDelayedPendingTask<T>(task: Task<T>, delay: MaybeRef<number>): Task<T> {}
+
+export interface ScopesPool {
+  spawn: (setup: (dispose: () => void, scope: EffectScope) => void) => void
+  pool: Set<EffectScope>
+}
+
+export function useScopesPool(): ScopesPool {}
+
+/**
+ * Debatable...
+ *
+ * - immediate or not?
+ * - flush sync?
+ * - return handle
+ *
+ * Can be just written as watch
+ *
+ * ...but reduces boilerplate for sure
+ *
+ * should be immediate & sync by default
+ */
+export function wheneverTaskErrors(
+  task: Task<unknown>,
+  fn: (error: unknown) => void,
+  options?: WatchOptions,
+): WatchStopHandle {
+  return watch(
+    () => (task.state.kind === 'err' ? task.state : null),
+    (val) => val && fn(val.error),
+    wheneverTaskResultsOptionsWithDefaults(options),
+  )
+}
+
+export function wheneverTaskSucceeds<T>(
+  task: Task<T>,
+  fn: (result: T) => void,
+  options?: WatchOptions,
+): WatchStopHandle {
+  return watch(
+    () => (task.state.kind === 'ok' ? task.state : null),
+    (val) => val && fn(val.result),
+    wheneverTaskResultsOptionsWithDefaults(options),
+  )
+}
+
+function wheneverTaskResultsOptionsWithDefaults(options?: WatchOptions): WatchOptions {
+  return {
+    immediate: true,
+    flush: 'sync',
+    ...options,
+  }
 }

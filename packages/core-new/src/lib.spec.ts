@@ -82,6 +82,8 @@ describe('BareTask', () => {
 
     expect(fn).toBeCalledTimes(1)
   })
+
+  test.todo('onAbort() on first execution is not called when second abortation is happened')
 })
 
 describe('useTask', () => {
@@ -184,4 +186,6 @@ describe('useTask', () => {
 
     expect(abort).toBeCalledTimes(1)
   })
+
+  test.todo('when re-run happens while pending & there is a sync watcher on state, it is not called')
 })

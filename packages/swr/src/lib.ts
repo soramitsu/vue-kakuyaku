@@ -1,4 +1,4 @@
-import { TaskFn, Task, FalsyScopeKey, ScopeKey, TaskState, TaskInertState } from '@vue-async/core'
+import { TaskFn, Task, FalsyScopeKey, ScopeKey, TaskState, TaskStaleIfErrorState } from '@vue-async/core'
 import { Ref, watch, shallowRef } from 'vue'
 
 export type Maybe<T> = null | {
@@ -12,7 +12,7 @@ export type Maybe<T> = null | {
 //   pending: boolean
 // }
 
-export type Storage<T> = Pick<Map<ScopeKey, TaskInertState<T>>, 'get' | 'set'>
+export type Storage<T> = Pick<Map<ScopeKey, TaskStaleIfErrorState<T>>, 'get' | 'set'>
 
 export function expandState<T>(state: TaskState<T>): StateExpanded<T> {
   return {
@@ -23,7 +23,7 @@ export function expandState<T>(state: TaskState<T>): StateExpanded<T> {
   }
 }
 
-function useStorage<T>(state: TaskInertState<T>, storage: Storage<T>): Ref<TaskInertState<T>> {}
+function useStorage<T>(state: TaskStaleIfErrorState<T>, storage: Storage<T>): Ref<TaskStaleIfErrorState<T>> {}
 
 export function useStaleWhileRevalidate<T>(
   { task, key }: { task: Task<T>; key: ScopeKey },
