@@ -1,7 +1,7 @@
 /* eslint-disable max-nested-callbacks */
 import { test, expect, describe, vi } from 'vitest'
-import { isReactive, reactive, effectScope } from 'vue'
-import { TaskState, BareTask, useTask } from './lib'
+import { isReactive, reactive, effectScope, watch } from 'vue'
+import { TaskState, BareTask, useTask, useStaleIfErrorState } from './lib'
 
 function defineState<T extends TaskState<any>>(state: T): T {
   return state
@@ -23,7 +23,7 @@ describe('BareTask', () => {
     const task = new BareTask(async () => 42)
     const result = await task.run()
 
-    expect(result).toEqual(defineState({ kind: 'ok', result: 42 }))
+    expect(result).toEqual(defineState({ kind: 'ok', data: 42 }))
   })
 
   test('returns Err on failed run', async () => {
@@ -103,7 +103,7 @@ describe('useTask', () => {
     const task = useTask(async () => 42)
     await task.run()
 
-    expect(task.state).toEqual(defineState({ kind: 'ok', result: 42 }))
+    expect(task.state).toEqual(defineState({ kind: 'ok', data: 42 }))
   })
 
   test('task state is "err" when errored', async () => {
@@ -187,5 +187,144 @@ describe('useTask', () => {
     expect(abort).toBeCalledTimes(1)
   })
 
-  test.todo('when re-run happens while pending & there is a sync watcher on state, it is not called')
+  describe('state triggers avoidance', () => {
+    test('when re-run happens while pending & there is a sync watcher on state, it is not called', async () => {
+      const syncWatcher = vi.fn()
+      const task = useTask(() => IMPOSSIBLE_PROMISE)
+      watch(
+        () => task.state,
+        () => syncWatcher(),
+        { flush: 'sync' },
+      )
+
+      task.run()
+      expect(syncWatcher).toBeCalledTimes(1)
+
+      task.run()
+      expect(syncWatcher).toBeCalledTimes(1)
+    })
+  })
+})
+
+describe('useStaleIfErrorState()', () => {
+  test('initial task state', () => {
+    const state = useStaleIfErrorState(useTask(async () => 42))
+
+    expect(state).toMatchInlineSnapshot(`
+      {
+        "error": null,
+        "fresh": false,
+        "pending": false,
+        "result": null,
+      }
+    `)
+  })
+
+  test('state when task becomes pending for the first time', () => {
+    const task = useTask(async () => IMPOSSIBLE_PROMISE)
+    const state = useStaleIfErrorState(task)
+
+    task.run()
+
+    expect(state).toMatchInlineSnapshot(`
+      {
+        "error": null,
+        "fresh": false,
+        "pending": true,
+        "result": null,
+      }
+    `)
+  })
+
+  test('state when task is ok for the first time', async () => {
+    const task = useTask(async () => 42)
+    const state = useStaleIfErrorState(task)
+
+    await task.run()
+
+    expect(state).toMatchInlineSnapshot(`
+      {
+        "error": null,
+        "fresh": true,
+        "pending": false,
+        "result": {
+          "some": 42,
+        },
+      }
+    `)
+  })
+
+  test('state when task errors after the first ok', async () => {
+    let count = 0
+    const task = useTask(async () => {
+      if (count++ === 0) {
+        return 42
+      }
+      throw new Error('hey')
+    })
+    const state = useStaleIfErrorState(task)
+
+    await task.run()
+    await task.run()
+
+    expect(state).toMatchInlineSnapshot(`
+      {
+        "error": {
+          "some": [Error: hey],
+        },
+        "fresh": false,
+        "pending": false,
+        "result": {
+          "some": 42,
+        },
+      }
+    `)
+  })
+
+  test('state when task oks after ok and error', async () => {
+    let count = 0
+    const task = useTask(async () => {
+      count++
+      if (count === 1) {
+        return 42
+      } else if (count === 2) {
+        throw new Error('hey')
+      }
+      return 43
+    })
+    const state = useStaleIfErrorState(task)
+
+    await task.run()
+    await task.run()
+    await task.run()
+
+    expect(state).toMatchInlineSnapshot(`
+      {
+        "error": null,
+        "fresh": true,
+        "pending": false,
+        "result": {
+          "some": 43,
+        },
+      }
+    `)
+  })
+})
+
+describe.todo('"Whenever task..."')
+
+describe('useDanglingScope()', () => {
+  test.todo('setup function return value appears after first setup')
+
+  test.todo('first set up scope disposes on dispose() call')
+
+  test.todo('first set up scope disposes on a new setup()')
+
+  test.todo('set up scope disposes on main scope dispose')
+
+  test.todo('scope setup return changes on a new setup()')
+
+  test.todo('scope setup return becomes a null on dispose()')
+
+  test.todo('scope ref is readonly for sure')
 })

@@ -11,6 +11,9 @@ import {
   EffectScope,
   WatchStopHandle,
   WatchOptions,
+  computed,
+  effectScope,
+  shallowReadonly,
 } from 'vue'
 import { MaybeRef, useIntervalFn } from '@vueuse/core'
 
@@ -62,7 +65,7 @@ export type TaskResult<T> = TaskResultOk<T> | TaskResultErr
  * Task succeeded. Stores its execution result.
  */
 export interface TaskResultOk<T> extends Tagged<'ok'> {
-  readonly result: T
+  readonly data: T
 }
 
 /**
@@ -133,7 +136,7 @@ export class BareTask<T> {
     const promise = new Promise<BareTaskRunResult<T>>((resolve) => {
       abortHandle.onAbort(() => resolve(STATE_ABORTED))
       this.#fn(abortHandle.onAbort)
-        .then((result) => resolve({ kind: 'ok', result }))
+        .then((data) => resolve({ kind: 'ok', data }))
         .catch((error) => resolve({ kind: 'err', error }))
     })
 
@@ -233,12 +236,13 @@ export interface Task<T> {
  * - {@link useErrorRetry}
  * - {@link useScope} - when you need to conditionaly **setup** a task
  * - {@link useDanglingScope} - when you need to setup a task, but later, e.g. on some event
- * - {@link createBareTask} - when you don't need task reactive state, but want to have redoability, abortation
+ * - {@link BareTask} - when you don't need task reactive state, but want to have redoability, abortation
  *   and {@link TaskResult<T>}
  */
 export function useTask<T>(fn: TaskFn<T>): Task<T> {
   const bare = new BareTask(fn)
   const abort = bare.abort.bind(bare)
+
   let lastRun: null | Promise<unknown> = null
 
   const task: Task<T> = shallowReactive({
@@ -249,22 +253,63 @@ export function useTask<T>(fn: TaskFn<T>): Task<T> {
 
   function run(): Promise<BareTaskRunResult<T>> {
     abort()
-    task.state = STATE_PENDING_RAW
+    setTaskStateWithEqualityCheck(task, STATE_PENDING_RAW)
 
     const thisPromise = bare.run().then((result) => {
       if (lastRun === thisPromise) {
-        task.state = result.kind === 'aborted' ? STATE_ABORTED_RAW : markRaw(result)
+        setTaskStateWithEqualityCheck(task, result.kind === 'aborted' ? STATE_ABORTED_RAW : markRaw(result))
       }
+
       return result
     })
-    lastRun = thisPromise
 
+    lastRun = thisPromise
     return thisPromise
   }
 
-  getCurrentScope() && onScopeDispose(abort)
+  onScopeDisposeIfThereAny(abort)
 
   return task
+}
+
+function onScopeDisposeIfThereAny(fn: () => void): void {
+  getCurrentScope() && onScopeDispose(fn)
+}
+
+function setTaskStateWithEqualityCheck<T>(task: Task<T>, newState: TaskState<T>): void {
+  if (!statesEqual(task.state, newState)) {
+    task.state = newState
+  }
+}
+
+function statesEqual<T>(one: TaskState<T>, other: TaskState<T>): boolean {
+  return (
+    one.kind === other.kind &&
+    (one.kind !== 'ok' || one.data === (other as TaskResultOk<T>).data) &&
+    (one.kind !== 'err' || one.error === (other as TaskResultErr).error)
+  )
+}
+
+if (import.meta.vitest) {
+  const { test, expect, describe } = import.meta.vitest
+
+  describe('statesEqual', () => {
+    const CASES: [TaskState<any>, TaskState<any>, boolean][] = [
+      [{ kind: 'aborted' }, { kind: 'aborted' }, true],
+      [{ kind: 'aborted' }, { kind: 'uninit' }, false],
+      [{ kind: 'pending' }, { kind: 'ok', data: null }, false],
+      [{ kind: 'ok', data: null }, { kind: 'ok', data: null }, true],
+      [{ kind: 'ok', data: { foo: 'bar' } }, { kind: 'ok', data: { foo: 'bar' } }, false],
+      [{ kind: 'ok', data: { foo: 'bar' } }, { kind: 'err', error: new Error('fasd') }, false],
+      [{ kind: 'err', error: 'hey' }, { kind: 'err', error: new Error('fasd') }, false],
+      [{ kind: 'err', error: 'hey' }, { kind: 'err', error: 'hey' }, true],
+    ]
+
+    test.each(CASES)('%o == %o: %o', (one, other, expectedEquality) => {
+      expect(statesEqual(one, other)).toBe(expectedEquality)
+      expect(statesEqual(other, one)).toBe(expectedEquality)
+    })
+  })
 }
 
 /**
@@ -360,7 +405,32 @@ export function useScope<T, K extends ScopeKey>(
 export function useScope<T>(
   key: Ref<FalsyScopeKey | true | ScopeKey>,
   setup: (key?: ScopeKey) => T,
-): Ref<null | ScopeSetup<T> | KeyedScopeSetup<T, ScopeKey>> {}
+): Ref<null | ScopeSetup<T> | KeyedScopeSetup<T, ScopeKey>> {
+  const dangling = useDanglingScope<ScopeSetup<T> | KeyedScopeSetup<T, ScopeKey>>()
+
+  watch(
+    key,
+    (actualKey) => {
+      if (!actualKey) {
+        dangling.dispose()
+      } else {
+        dangling.setup(() => {
+          return actualKey === true
+            ? {
+                setup: setup(),
+              }
+            : {
+                key: actualKey,
+                setup: setup(actualKey),
+              }
+        })
+      }
+    },
+    { immediate: true },
+  )
+
+  return computed(() => dangling.scope.value?.setup ?? null)
+}
 
 export interface DanglingScope<T> {
   scope: Readonly<Ref<null | ScopeSetup<T>>>
@@ -395,7 +465,31 @@ export interface DanglingScope<T> {
  * })
  * ```
  */
-export function useDanglingScope<T>(): DanglingScope<T> {}
+export function useDanglingScope<T>(): DanglingScope<T> {
+  const main = getCurrentScope() || effectScope()
+  let scope: EffectScope | null = null
+  const scopeSetupReturn = shallowRef<null | ScopeSetup<T>>(null)
+
+  function setup(fn: () => T): void {
+    dispose()
+
+    main.run(() => {
+      scope = effectScope()
+      scope.run(() => {
+        scopeSetupReturn.value = { setup: fn() }
+      })
+    })
+  }
+
+  function dispose(): void {
+    if (scope) {
+      scope.stop()
+      scope = scopeSetupReturn.value = null
+    }
+  }
+
+  return { setup, dispose, scope: shallowReadonly(scopeSetupReturn) }
+}
 
 export type Maybe<T> = null | { some: T }
 
@@ -408,7 +502,7 @@ export interface TaskStaleIfErrorState<T> {
 
 export function useStaleIfErrorState<T>(task: Task<T>): TaskStaleIfErrorState<T> {
   const state: TaskStaleIfErrorState<T> = shallowReactive({
-    result: task.state.kind === 'ok' ? { some: task.state.result } : null,
+    result: task.state.kind === 'ok' ? { some: task.state.data } : null,
     error: task.state.kind === 'err' ? { some: task.state.error } : null,
     pending: task.state.kind === 'pending',
     fresh: task.state.kind === 'ok',
@@ -426,7 +520,7 @@ export function useStaleIfErrorState<T>(task: Task<T>): TaskStaleIfErrorState<T>
         if (val.kind === 'err') {
           state.error = markRaw({ some: val.error })
         } else if (val.kind === 'ok') {
-          state.result = markRaw({ some: val.result })
+          state.result = markRaw({ some: val.data })
           state.error = null
           state.fresh = true
         }
@@ -513,30 +607,6 @@ export function useErrorRetry(
   return { reset: resetCounter, retries: retriesCount }
 }
 
-export function useDelayedPending(task: Task<unknown>): Ref<boolean> {}
-
-export function useDelayedPendingTask<T>(task: Task<T>, delay: MaybeRef<number>): Task<T> {}
-
-export interface ScopesPool {
-  spawn: (setup: (dispose: () => void, scope: EffectScope) => void) => void
-  pool: Set<EffectScope>
-}
-
-export function useScopesPool(): ScopesPool {}
-
-/**
- * Debatable...
- *
- * - immediate or not?
- * - flush sync?
- * - return handle
- *
- * Can be just written as watch
- *
- * ...but reduces boilerplate for sure
- *
- * should be immediate & sync by default
- */
 export function wheneverTaskErrors(
   task: Task<unknown>,
   fn: (error: unknown) => void,
@@ -545,7 +615,7 @@ export function wheneverTaskErrors(
   return watch(
     () => (task.state.kind === 'err' ? task.state : null),
     (val) => val && fn(val.error),
-    wheneverTaskResultsOptionsWithDefaults(options),
+    wheneverTaskResolvesOptionsWithDefaults(options),
   )
 }
 
@@ -556,12 +626,12 @@ export function wheneverTaskSucceeds<T>(
 ): WatchStopHandle {
   return watch(
     () => (task.state.kind === 'ok' ? task.state : null),
-    (val) => val && fn(val.result),
-    wheneverTaskResultsOptionsWithDefaults(options),
+    (val) => val && fn(val.data),
+    wheneverTaskResolvesOptionsWithDefaults(options),
   )
 }
 
-function wheneverTaskResultsOptionsWithDefaults(options?: WatchOptions): WatchOptions {
+function wheneverTaskResolvesOptionsWithDefaults(options?: WatchOptions): WatchOptions {
   return {
     immediate: true,
     flush: 'sync',

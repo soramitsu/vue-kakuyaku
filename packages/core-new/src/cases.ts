@@ -41,7 +41,7 @@ function conditional_immediate_data_fetching() {
 
   const maybeNumber = computed<number | null>(() => {
     const state = maybeTask.value?.setup.state
-    if (state?.kind === 'ok') return state.result
+    if (state?.kind === 'ok') return state.data
     return null
   })
 }
@@ -148,7 +148,7 @@ watch(
   () => task.state,
   (state) => {
     if (state.kind === 'ok') {
-      console.log(state.result)
+      console.log(state.data)
     } else if (state.kind === 'err') {
       console.error(state.error)
     } else if (state.kind === 'pending') {
