@@ -1,6 +1,6 @@
 import { MaybeRef } from '@vueuse/core'
 import { EffectScope, Ref } from 'vue'
-import { Task } from './lib'
+import { Task } from '../src/lib'
 
 interface ScopesPool {
   spawn: (setup: (dispose: () => void, scope: EffectScope) => void) => void

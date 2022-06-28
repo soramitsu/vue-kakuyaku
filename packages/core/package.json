@@ -1,0 +1,44 @@
+{
+  "name": "@vue-kakuyaku/core",
+  "description": "Async operations toolkit for Vue",
+  "keywords": [
+    "vue",
+    "promise",
+    "async",
+    "fetch",
+    "callback",
+    "composition-api",
+    "error-retry"
+  ],
+  "version": "0.1.0",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/soramitsu/vue-kakuyaku.git"
+  },
+  "bugs": {
+    "url": "https://github.com/soramitsu/vue-kakuyaku/issues"
+  },
+  "homepage": "https://github.com/soramitsu/vue-kakuyaku/tree/master/packages/core#readme",
+  "main": "dist/vue-kakuyaku.cjs",
+  "module": "dist/vue-kakuyaku.mjs",
+  "types": "dist/vue-kakuyaku.d.ts",
+  "exports": {
+    ".": {
+      "import": "./dist/vue-kakuyaku.mjs",
+      "require": "./dist/vue-kakuyaku.cjs"
+    }
+  },
+  "dependencies": {
+    "@vueuse/core": "^8.7.4",
+    "vue": "^3.2"
+  },
+  "devDependencies": {
+    "vite": "^2.9.8"
+  },
+  "scripts": {
+    "build": "run-s build:dts build:vite",
+    "build:vite": "vite build",
+    "build:ts": "tsc --build --clean && tsc --declaration --emitDeclarationOnly"
+  }
+}

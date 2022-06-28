@@ -1,8 +1,0 @@
-{
-  "component": {
-    "componentFolder": "cypress/component",
-    "testFiles": "**/*.spec.{ts,js}"
-  },
-  "fixturesFolder": false,
-  "video": false
-}

@@ -1,13 +1,12 @@
 {
-  "name": "@vue-swr-composable/monorepo",
+  "name": "@vue-kakuyaku/monorepo",
   "private": true,
   "scripts": {
     "test:unit": "vitest run",
-    "test:ci": "run-s lint test:unit test:core-ci",
-    "test:core-ci": "pnpm --filter core run test:ci ",
+    "test:ci": "run-s lint test:unit",
     "lint": "eslint --ext ts .",
-    "build": "run-s build:main api:run",
-    "build:main": "pnpm --filter core run build",
+    "build:ci": "run-s build api:run",
+    "build": "pnpm --filter core run build",
     "api:run": "api-extractor run -c ./packages/core/api-extractor.json",
     "api:run:local": "pnpm run api:run -l",
     "publish-all": "pnpm publish packages/core",

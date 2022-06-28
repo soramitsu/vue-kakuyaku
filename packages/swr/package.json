@@ -1,9 +1,0 @@
-{
-    "name": "@vue-async/swr",
-    "version": "0.1.0",
-    "main": "src/lib.ts",
-    "dependencies": {
-        "@vue-async/core": "workspace:^0.1.0",
-        "vue": "^3.2.37"
-    }
-}

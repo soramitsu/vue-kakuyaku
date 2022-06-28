@@ -29,7 +29,7 @@ export type OnAbortFn = (fn: () => void) => void
 /**
  * Atomic task state. Represented as an algebraic enumerated type to be more type-strong.
  */
-export type TaskState<T> = TaskStateUninit | TaskStatePending | TaskResult<T> | TaskStateAborted
+export type TaskState<T> = TaskStateUninit | TaskStatePending | Result<T> | TaskStateAborted
 
 /**
  * Used to build algebraic enumerated types
@@ -59,19 +59,19 @@ export interface TaskStateAborted extends Tagged<'aborted'> {}
 /**
  * Ok or Err
  */
-export type TaskResult<T> = TaskResultOk<T> | TaskResultErr
+export type Result<T> = ResultOk<T> | ResultErr
 
 /**
  * Task succeeded. Stores its execution result.
  */
-export interface TaskResultOk<T> extends Tagged<'ok'> {
+export interface ResultOk<T> extends Tagged<'ok'> {
   readonly data: T
 }
 
 /**
  * Task errored. Stores its error.
  */
-export interface TaskResultErr extends Tagged<'err'> {
+export interface ResultErr extends Tagged<'err'> {
   readonly error: unknown
 }
 
@@ -115,7 +115,7 @@ class AbortHandle {
   }
 }
 
-export type BareTaskRunResult<T> = TaskStateAborted | TaskResult<T>
+export type BareTaskRunReturn<T> = TaskStateAborted | Result<T>
 
 /**
  * State**less** abstraction around redoable headless async operation.
@@ -128,12 +128,12 @@ export class BareTask<T> {
     this.#fn = fn
   }
 
-  public run(): Promise<BareTaskRunResult<T>> {
+  public run(): Promise<BareTaskRunReturn<T>> {
     this.abort()
 
     const abortHandle = new AbortHandle()
 
-    const promise = new Promise<BareTaskRunResult<T>>((resolve) => {
+    const promise = new Promise<BareTaskRunReturn<T>>((resolve) => {
       abortHandle.onAbort(() => resolve(STATE_ABORTED))
       this.#fn(abortHandle.onAbort)
         .then((data) => resolve({ kind: 'ok', data }))
@@ -170,7 +170,7 @@ export interface Task<T> {
    * Atomic task state
    */
   state: TaskState<T>
-  run: () => Promise<BareTaskRunResult<T>>
+  run: () => Promise<BareTaskRunReturn<T>>
   abort: () => void
 }
 
@@ -237,7 +237,7 @@ export interface Task<T> {
  * - {@link useScope} - when you need to conditionaly **setup** a task
  * - {@link useDanglingScope} - when you need to setup a task, but later, e.g. on some event
  * - {@link BareTask} - when you don't need task reactive state, but want to have redoability, abortation
- *   and {@link TaskResult<T>}
+ *   and {@link Result<T>}
  */
 export function useTask<T>(fn: TaskFn<T>): Task<T> {
   const bare = new BareTask(fn)
@@ -251,7 +251,7 @@ export function useTask<T>(fn: TaskFn<T>): Task<T> {
     abort: abort,
   })
 
-  function run(): Promise<BareTaskRunResult<T>> {
+  function run(): Promise<BareTaskRunReturn<T>> {
     abort()
     setTaskStateWithEqualityCheck(task, STATE_PENDING_RAW)
 
@@ -285,8 +285,8 @@ function setTaskStateWithEqualityCheck<T>(task: Task<T>, newState: TaskState<T>)
 function statesEqual<T>(one: TaskState<T>, other: TaskState<T>): boolean {
   return (
     one.kind === other.kind &&
-    (one.kind !== 'ok' || one.data === (other as TaskResultOk<T>).data) &&
-    (one.kind !== 'err' || one.error === (other as TaskResultErr).error)
+    (one.kind !== 'ok' || one.data === (other as ResultOk<T>).data) &&
+    (one.kind !== 'err' || one.error === (other as ResultErr).error)
   )
 }
 
@@ -532,8 +532,8 @@ export function useStaleIfErrorState<T>(task: Task<T>): TaskStaleIfErrorState<T>
   return state
 }
 
-export function useLastTaskResult<T>(task: Task<T>): Ref<null | TaskResult<T>> {
-  const result = shallowRef<null | TaskResult<T>>(null)
+export function useLastTaskResult<T>(task: Task<T>): Ref<null | Result<T>> {
+  const result = shallowRef<null | Result<T>>(null)
 
   watch(
     () => task.state,

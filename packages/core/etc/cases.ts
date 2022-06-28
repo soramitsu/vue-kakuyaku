@@ -7,8 +7,8 @@ import {
   useTask,
   useDanglingScope,
   TaskStaleIfErrorState,
-} from './lib'
-// import { useStaleWhileRevalidate, StateExpanded, Storage } from '../../swr/src/lib'
+  ScopeKey,
+} from '../src/lib'
 
 async function delay(ms: number): Promise<void> {
   // ...
@@ -82,19 +82,23 @@ function retry_on_error() {
 
 /**
  * SWR means we need to stale old data while fetching for a new one
+ *
+ * WIP
  */
 function impl_swr() {
   const key = ref('foo')
-  const storage: Storage<StateExpanded<any>> = reactive(new Map())
+  const storage = reactive(new Map<ScopeKey, TaskStaleIfErrorState<any>>())
 
   const scope = useScope(
     computed(() => Math.random() > 42 && key.value),
     (key) => {
       const task = useTask(async () => key)
-      const { state } = useStaleWhileRevalidate<string>({ task, key }, storage)
+      const state = useStaleIfErrorState(task)
 
-      const isPending = computed<boolean>(() => state.value.pending)
-      const fetchedData = computed<string | null>(() => state.value.result?.some ?? null)
+      // WIP: what is the best way to store state?
+
+      const isPending = computed<boolean>(() => state.pending)
+      const fetchedData = computed<string | null>(() => state.result?.some ?? null)
 
       return { isPending, fetchedData }
     },
@@ -130,45 +134,3 @@ function submit_form() {
     })
   }
 }
-
-const task = useTask(async (onAbort) => {
-  // do async stuff...
-  await delay(40)
-
-  // handle abort
-  onAbort(() => {
-    // ...
-  })
-
-  // return something (or nothing)
-  return 20
-})
-
-watch(
-  () => task.state,
-  (state) => {
-    if (state.kind === 'ok') {
-      console.log(state.data)
-    } else if (state.kind === 'err') {
-      console.error(state.error)
-    } else if (state.kind === 'pending') {
-      console.log('pending...')
-    }
-
-    // also uninint & aborted
-  },
-)
-
-// just run
-task.run()
-
-// abort pending & run new task
-task.run()
-
-// run and wait for exactly this run
-// result is ok, err or aborted
-const result = await task.run()
-
-// just abort
-// auto call on scope dispose
-task.abort()

@@ -21,6 +21,7 @@ module.exports = {
     ],
   },
   overrides: [
+    // not relevalt for now
     {
       files: ['packages/core/cypress/component/**/*.ts'],
       plugins: ['cypress'],

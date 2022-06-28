@@ -1,8 +1,7 @@
 {
   "extends": "../../tsconfig.json",
   "compilerOptions": {
-    "types": ["vitest/importMeta"],
-    "outDir": "dist-tsc"
+    "outDir": "tsbuild"
   },
   "include": ["./src"]
 }
