@@ -1,8 +1,8 @@
 # `@vue-kakuyaku/core`
 
-> kakuyaku (Japanese 確約) - Promise
+Toolkit to handle async operations in Vue.
 
-Toolkit to handle `Promise`-based operations in Vue.
+This is the core library of `vue-kakuyaku` project.
 
 ## Features
 
@@ -81,9 +81,13 @@ Using task state:
 const isPending = computed(() => task.state.kind === 'pending')
 ```
 
-### Delayed pending
+### Delayed pending (shortest TODO)
 
 ```ts
 const delayedPending = useDelayedPending(task)
 const taskWithDelayedPending = useDelayedPendingTask(task)
 ```
+
+## Why the name?
+
+"Kakuyaku" (確約) means "Promise" in Japanese.

@@ -1,6 +1,10 @@
-# vue-swr-composable
+# vue-kakuyaku
 
-Stale-while-revalidate data caching pattern for Vue 3.
+Toolkip to handle async operations in Vue.
+
+## Why the name?
+
+"Kakuyaku" (確約) means "Promise" in Japanese.
 
 ## Project structure
 
@@ -21,7 +25,7 @@ pnpm format:check
 pnpm test:ci
 
 # build & verify API report
-pnpm build
+pnpm build:ci
 
 # publish all public packages
 pnpm publish-all
