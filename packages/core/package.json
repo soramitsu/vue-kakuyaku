@@ -30,14 +30,14 @@
     }
   },
   "dependencies": {
-    "@vueuse/core": "^8.7.4",
+    "@vueuse/core": "^8.7.5",
     "vue": "^3.2"
   },
   "devDependencies": {
-    "vite": "^2.9.8"
+    "vite": "^2.9.13"
   },
   "scripts": {
-    "build": "run-s build:dts build:vite",
+    "build": "run-s build:ts build:vite",
     "build:vite": "vite build",
     "build:ts": "tsc --build --clean && tsc --declaration --emitDeclarationOnly"
   }

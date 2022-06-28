@@ -20,7 +20,7 @@ import { MaybeRef, useIntervalFn } from '@vueuse/core'
 /**
  * Function that is wrapped into a {@link Task}.
  *
- * Accepts `onAbort
+ * Accepts `onAbort` callback to register abortation hook.
  */
 export type TaskFn<T> = (onAbort: OnAbortFn) => Promise<T>
 
@@ -177,12 +177,12 @@ export interface Task<T> {
 /**
  * Setup a task with reactive state and disposition on scope dispose.
  *
- * Receives the only one argument - {@link TaskFn `TaskFn<T>`}.
+ * Receives the only one argument - {@link TaskFn | `TaskFn<T>`}.
  *
  * Task is aborted when:
  *
- * - {@link Task.run `.run()`} is called while task is pending
- * - {@link Task.abort `.abort()`} is called
+ * - {@link Task.run | `.run()`} is called while task is pending
+ * - {@link Task.abort | `.abort()`} is called
  * - task's scope is disposed
  *
  * ## Examples
@@ -237,7 +237,7 @@ export interface Task<T> {
  * - {@link useScope} - when you need to conditionaly **setup** a task
  * - {@link useDanglingScope} - when you need to setup a task, but later, e.g. on some event
  * - {@link BareTask} - when you don't need task reactive state, but want to have redoability, abortation
- *   and {@link Result<T>}
+ *   and {@link Result | `Result<T>`}
  */
 export function useTask<T>(fn: TaskFn<T>): Task<T> {
   const bare = new BareTask(fn)
