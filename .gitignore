@@ -9,7 +9,7 @@ lerna-debug.log*
 
 node_modules
 dist
-dist-tsc
+tsbuild
 dist-ssr
 /etc/api/tmp
 *.local
