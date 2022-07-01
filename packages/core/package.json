@@ -12,6 +12,9 @@
   ],
   "version": "0.1.0",
   "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
   "repository": {
     "type": "git",
     "url": "git+https://github.com/soramitsu/vue-kakuyaku.git"
@@ -29,6 +32,9 @@
       "require": "./dist/vue-kakuyaku.cjs"
     }
   },
+  "files": [
+    "dist"
+  ],
   "dependencies": {
     "@vueuse/core": "^8.7.5",
     "vue": "^3.2"
