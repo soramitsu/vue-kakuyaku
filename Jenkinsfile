@@ -5,9 +5,9 @@ def pipeline = new org.js.LibPipeline(steps: this,
   packageManager: 'pnpm',
   testCmds: ['pnpm format:check', 'pnpm test:ci'],
   buildCmds: ['pnpm build:ci'],
-  pushCmds: ['pnpm publish:all'],
   npmRegistries: [:],
   npmLoginEmail:'admin@soramitsu.co.jp',
-  sonarProjectName: 'vue-swr-composable',
-  sonarProjectKey: 'jp.co.soramitsu:vue-swr-composable')
+  pushCmds: ['pnpm publish-all'],
+  sonarProjectName: 'vue-kakuyaku',
+  sonarProjectKey: 'jp.co.soramitsu:vue-kakuyaku')
 pipeline.runPipeline()
