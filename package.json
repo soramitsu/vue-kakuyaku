@@ -9,7 +9,7 @@
     "build": "pnpm --filter core run build",
     "api:run": "api-extractor run -c ./packages/core/api-extractor.json",
     "api:run:local": "pnpm run api:run -l",
-    "publish-all": "pnpm publish packages/core",
+    "publish-all": "pnpm publish packages/core --no-git-checks",
     "format": "prettier '**/**.{js,ts,json,md}'",
     "format:check": "pnpm format --check"
   },
