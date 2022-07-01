@@ -1,6 +1,6 @@
 # vue-kakuyaku
 
-Toolkip to handle async operations in Vue.
+Toolkit to handle async operations in Vue.
 
 ## Why the name?
 
