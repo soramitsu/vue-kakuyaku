@@ -5,8 +5,9 @@
     "test:unit": "vitest run",
     "test:ci": "run-s lint test:unit",
     "lint": "eslint --ext ts .",
-    "build:ci": "run-s build api:run",
-    "build": "pnpm --filter core run build",
+    "build:ci": "run-s build:core api:run",
+    "build": "run-s build:core api:run:local",
+    "build:core": "pnpm --filter core run build",
     "api:run": "api-extractor run -c ./packages/core/api-extractor.json",
     "api:run:local": "pnpm run api:run -l",
     "publish-all": "pnpm publish packages/core --no-git-checks --access public",
@@ -14,6 +15,7 @@
     "format:check": "pnpm format --check"
   },
   "devDependencies": {
+    "@changesets/cli": "^2.23.0",
     "@microsoft/api-extractor": "^7.28.0",
     "@typescript-eslint/eslint-plugin": "^5.30.0",
     "@typescript-eslint/parser": "^5.30.0",
