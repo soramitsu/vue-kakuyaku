@@ -37,6 +37,7 @@
   ],
   "dependencies": {
     "@vueuse/core": "^8.7.5",
+    "type-fest": "^2.16.0",
     "vue": "^3.2"
   },
   "devDependencies": {
@@ -44,7 +45,7 @@
   },
   "scripts": {
     "build": "run-s build:ts build:vite",
-    "build:vite": "vite build",
-    "build:ts": "tsc --build --clean && tsc --declaration --emitDeclarationOnly"
+    "build:ts": "tsc --build --clean && tsc --declaration --emitDeclarationOnly",
+    "build:vite": "vite build"
   }
 }

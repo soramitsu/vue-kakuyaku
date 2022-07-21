@@ -4,32 +4,45 @@
 
 ```ts
 
+import { Except } from 'type-fest';
 import { MaybeRef } from '@vueuse/core';
 import { Ref } from 'vue';
 import { WatchOptions } from 'vue';
 import { WatchStopHandle } from 'vue';
 
-// @public
-export class BareTask<T> {
-    constructor(fn: TaskFn<T>);
+// @public (undocumented)
+export interface ComposedKey<K extends ScopeKey, P> {
     // (undocumented)
-    abort(): void;
+    key: K;
     // (undocumented)
-    run(): Promise<BareTaskRunReturn<T>>;
+    payload: P;
 }
 
 // @public (undocumented)
-export type BareTaskRunReturn<T> = TaskStateAborted | Result<T>;
+export interface Deferred<T> extends Promise<T> {
+    // (undocumented)
+    reject: (reason: unknown) => void;
+    // (undocumented)
+    resolve: (value: T | PromiseLike<T>) => void;
+    // (undocumented)
+    readonly state: 'pending' | 'fulfilled' | 'rejected';
+}
 
 // @public (undocumented)
-export interface DanglingScope<T> {
+export function deferred<T>(): Deferred<T>;
+
+// @public (undocumented)
+export interface DeferredScope<T> {
     // (undocumented)
     dispose: () => void;
     // (undocumented)
-    scope: Readonly<Ref<null | ScopeSetup<T>>>;
+    scope: Readonly<Ref<null | ScopeExpose<T>>>;
     // (undocumented)
     setup: (fn: () => T) => void;
 }
+
+// @public (undocumented)
+export function delay(ms: number): Promise<void>;
 
 // @public (undocumented)
 export interface ErrorRetryOptions {
@@ -40,123 +53,176 @@ export interface ErrorRetryOptions {
 // @public (undocumented)
 export type FalsyScopeKey = false | null | undefined;
 
+// Warning: (ae-forgotten-export) The symbol "PromiseStateAtomicFlat" needs to be exported by the entry point lib.d.ts
+//
 // @public (undocumented)
-export interface KeyedScopeSetup<T, K extends ScopeKey> extends ScopeSetup<T> {
+export function flattenState<T>(state: PromiseStateAtomic<T>): PromiseStateAtomicFlat<T, 'fulfilled'>;
+
+// Warning: (ae-forgotten-export) The symbol "FlatMode" needs to be exported by the entry point lib.d.ts
+//
+// @public (undocumented)
+export function flattenState<T, M extends FlatMode = 'fulfilled'>(state: PromiseStateAtomic<T>, mode: M): PromiseStateAtomicFlat<T, M>;
+
+// @public (undocumented)
+export type PromiseResultAtomic<T> = PromiseStateInvariantFulfilled<T> | PromiseStateInvariantRejected;
+
+// @public (undocumented)
+export interface PromiseStaleState<T> {
+    // (undocumented)
+    fresh: boolean;
+    // (undocumented)
+    fulfilled: null | {
+        value: T;
+    };
+    // (undocumented)
+    pending: boolean;
+    // (undocumented)
+    rejected: null | {
+        reason: unknown;
+    };
+}
+
+// @public (undocumented)
+export type PromiseStateAtomic<T> = PromiseStateInvariantEmpty | PromiseStateInvariantPending | PromiseResultAtomic<T>;
+
+// @public (undocumented)
+export interface PromiseStateInvariantEmpty {
+    // (undocumented)
+    fulfilled: null;
+    // (undocumented)
+    pending: false;
+    // (undocumented)
+    rejected: null;
+}
+
+// @public (undocumented)
+export interface PromiseStateInvariantFulfilled<T> {
+    // (undocumented)
+    fulfilled: {
+        value: T;
+    };
+    // (undocumented)
+    pending: false;
+    // (undocumented)
+    rejected: null;
+}
+
+// @public (undocumented)
+export interface PromiseStateInvariantPending {
+    // (undocumented)
+    fulfilled: null;
+    // (undocumented)
+    pending: true;
+    // (undocumented)
+    rejected: null;
+}
+
+// @public (undocumented)
+export interface PromiseStateInvariantRejected {
+    // (undocumented)
+    fulfilled: null;
+    // (undocumented)
+    pending: false;
+    // (undocumented)
+    rejected: {
+        reason: unknown;
+    };
+}
+
+// @public (undocumented)
+export interface ScopeExpose<T> {
+    // (undocumented)
+    expose: T;
+}
+
+// @public (undocumented)
+export interface ScopeExposeWithComposedKey<T, K extends ScopeKey, P> extends ScopeExposeWithKey<T, K> {
+    // (undocumented)
+    payload: P;
+}
+
+// @public (undocumented)
+export interface ScopeExposeWithKey<T, K extends ScopeKey> extends ScopeExpose<T> {
     // (undocumented)
     key: K;
-}
-
-// @public (undocumented)
-export type Maybe<T> = null | {
-    some: T;
-};
-
-// @public (undocumented)
-export type OnAbortFn = (fn: () => void) => void;
-
-// @public
-export type Result<T> = ResultOk<T> | ResultErr;
-
-// @public
-export interface ResultErr extends Tagged<'err'> {
-    // (undocumented)
-    readonly error: unknown;
-}
-
-// @public
-export interface ResultOk<T> extends Tagged<'ok'> {
-    // (undocumented)
-    readonly data: T;
 }
 
 // @public
 export type ScopeKey = string | number | symbol;
 
-// @public (undocumented)
-export interface ScopeSetup<T> {
-    // (undocumented)
-    setup: T;
-}
-
 // @public
-export interface Tagged<T extends string> {
-    // (undocumented)
-    readonly kind: T;
-}
-
-// @public
-export interface Task<T> {
-    // (undocumented)
-    abort: () => void;
-    // (undocumented)
-    run: () => Promise<BareTaskRunReturn<T>>;
-    state: TaskState<T>;
-}
-
-// @public
-export type TaskFn<T> = (onAbort: OnAbortFn) => Promise<T>;
+export function useDeferredScope<T>(): DeferredScope<T>;
 
 // @public (undocumented)
-export interface TaskStaleIfErrorState<T> {
-    // (undocumented)
-    error: Maybe<unknown>;
-    // (undocumented)
-    fresh: boolean;
-    // (undocumented)
-    pending: boolean;
-    // (undocumented)
-    result: Maybe<T>;
-}
-
-// @public
-export type TaskState<T> = TaskStateUninit | TaskStatePending | Result<T> | TaskStateAborted;
-
-// @public
-export interface TaskStateAborted extends Tagged<'aborted'> {
-}
-
-// @public
-export interface TaskStatePending extends Tagged<'pending'> {
-}
-
-// @public
-export interface TaskStateUninit extends Tagged<'uninit'> {
-}
-
-// @public
-export function useDanglingScope<T>(): DanglingScope<T>;
-
-// @public (undocumented)
-export function useErrorRetry(task: Task<any>, options?: ErrorRetryOptions): {
+export function useErrorRetry(state: PromiseStateAtomic<unknown>, retry: () => void, options?: ErrorRetryOptions): {
     reset: () => void;
     retries: Ref<number>;
 };
 
 // @public (undocumented)
-export function useLastTaskResult<T>(task: Task<T>): Ref<null | Result<T>>;
+export function useParamScope<E>(key: Ref<boolean>, setup: () => E): Ref<null | ScopeExpose<E>>;
+
+// @public (undocumented)
+export function useParamScope<E, K extends ScopeKey>(key: Ref<K>, setup: (key: K) => E): Ref<ScopeExposeWithKey<E, K>>;
+
+// @public (undocumented)
+export function useParamScope<E, K extends ScopeKey>(key: Ref<K>, setup: (key: K) => E): Ref<ScopeExposeWithKey<E, K>>;
+
+// @public (undocumented)
+export function useParamScope<E, K extends ScopeKey>(key: Ref<FalsyScopeKey | K>, setup: (key: K) => E): Ref<null | ScopeExposeWithKey<E, K>>;
+
+// @public (undocumented)
+export function useParamScope<E, K extends ScopeKey, P>(key: Ref<ComposedKey<K, P>>, setup: (payload: P) => E): Ref<ScopeExposeWithComposedKey<E, K, P>>;
+
+// @public (undocumented)
+export function useParamScope<E, K extends ScopeKey, P>(key: Ref<FalsyScopeKey | ComposedKey<K, P>>, setup: (payload: P) => E): Ref<null | ScopeExposeWithComposedKey<E, K, P>>;
+
+// @public (undocumented)
+export function usePromise<T>(): UsePromiseReturn<T>;
+
+// @public (undocumented)
+export interface UsePromiseReturn<T> {
+    // (undocumented)
+    clear: () => void;
+    // (undocumented)
+    set: (promise: Promise<T>) => void;
+    // (undocumented)
+    state: PromiseStateAtomic<T>;
+}
+
+// @public (undocumented)
+export function useScopeWithAdvancedKey<K extends string | number | symbol, P, S>(key: Ref<null | {
+    key: K;
+    payload: P;
+}>, fn: (payload: P) => S): Ref<null | {
+    expose: S;
+    key: K;
+    payload: P;
+}>;
+
+// @public (undocumented)
+export function useStaleState<T>(state: PromiseStateAtomic<T>): PromiseStaleState<T>;
 
 // @public
-export function useScope<T>(cond: Ref<boolean>, setup: () => T): Ref<null | ScopeSetup<T>>;
+export function useTask<T>(fn: () => Promise<T>, options?: {
+    immediate: boolean;
+}): {
+    state: PromiseStateAtomic<T>;
+    run: () => void;
+    clear: () => void;
+};
 
 // @public (undocumented)
-export function useScope<T, K extends ScopeKey>(key: Ref<K>, setup: (key: K) => T): Ref<KeyedScopeSetup<T, K>>;
+export function wheneverDone<T>(state: PromiseStateAtomic<T>, fn: (result: PromiseResultAtomic<T>) => void, options?: WheneverPromiseOptions): WatchStopHandle;
 
 // @public (undocumented)
-export function useScope<T, K extends ScopeKey>(condKey: Ref<FalsyScopeKey | K>, setup: (key: K) => T): Ref<null | KeyedScopeSetup<T, K>>;
+export function wheneverFulfilled<T>(state: PromiseStateAtomic<T>, fn: (value: T) => void, options?: WheneverPromiseOptions): WatchStopHandle;
 
 // @public (undocumented)
-export function useStaleIfErrorState<T>(task: Task<T>): TaskStaleIfErrorState<T>;
-
-// Warning: (ae-unresolved-link) The @link reference could not be resolved: The reference is ambiguous because "useScope" has more than one declaration; you need to add a TSDoc member reference selector
-//
-// @public
-export function useTask<T>(fn: TaskFn<T>): Task<T>;
+export type WheneverPromiseOptions = Except<WatchOptions, 'deep'>;
 
 // @public (undocumented)
-export function wheneverTaskErrors(task: Task<unknown>, fn: (error: unknown) => void, options?: WatchOptions): WatchStopHandle;
-
-// @public (undocumented)
-export function wheneverTaskSucceeds<T>(task: Task<T>, fn: (result: T) => void, options?: WatchOptions): WatchStopHandle;
+export function wheneverRejected(state: PromiseStateAtomic<unknown>, fn: (reason: unknown) => void, options?: WheneverPromiseOptions): WatchStopHandle;
 
 // (No @packageDocumentation comment for this package)
 
