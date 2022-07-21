@@ -5,7 +5,7 @@ import { deferred, usePromise } from './lib'
 
 const IMPOSSIBLE_PROMISE = new Promise(() => {})
 
-describe.only('usePromise()', () => {
+describe('usePromise()', () => {
   test('initial state is empty', () => {
     const { state } = usePromise()
 
