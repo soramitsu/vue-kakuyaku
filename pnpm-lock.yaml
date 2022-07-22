@@ -39,10 +39,12 @@ importers:
   packages/core:
     specifiers:
       '@vueuse/core': ^8.7.5
+      type-fest: ^2.16.0
       vite: ^2.9.13
       vue: ^3.2
     dependencies:
       '@vueuse/core': 8.7.5_vue@3.2.37
+      type-fest: 2.16.0
       vue: 3.2.37
     devDependencies:
       vite: 2.9.13
@@ -3094,6 +3096,11 @@ packages:
     resolution: {integrity: sha512-4dbzIzqvjtgiM5rw1k5rEHtBANKmdudhGyBEajN01fEyhaAIhsoKNy6y7+IN93IfpFtwY9iqi7kD+xwKhQsNJA==}
     engines: {node: '>=8'}
     dev: true
+
+  /type-fest/2.16.0:
+    resolution: {integrity: sha512-qpaThT2HQkFb83gMOrdKVsfCN7LKxP26Yq+smPzY1FqoHRjqmjqHXA7n5Gkxi8efirtbeEUxzfEdePthQWCuHw==}
+    engines: {node: '>=12.20'}
+    dev: false
 
   /typescript/4.6.4:
     resolution: {integrity: sha512-9ia/jWHIEbo49HfjrLGfKbZSuWo9iTMwXO+Ca3pRsSpbsMbc7/IU8NKdCZVRRBafVPGnoJeFL76ZOAA84I9fEg==}
