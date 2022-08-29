@@ -8,6 +8,7 @@ import { Except } from 'type-fest';
 import { MaybeRef } from '@vueuse/core';
 import { Ref } from 'vue';
 import { WatchOptions } from 'vue';
+import { WatchSource } from 'vue';
 import { WatchStopHandle } from 'vue';
 
 // @public (undocumented)
@@ -61,7 +62,7 @@ export function flattenState<T>(state: PromiseStateAtomic<T>): PromiseStateAtomi
 // Warning: (ae-forgotten-export) The symbol "FlatMode" needs to be exported by the entry point lib.d.ts
 //
 // @public (undocumented)
-export function flattenState<T, M extends FlatMode = 'fulfilled'>(state: PromiseStateAtomic<T>, mode: M): PromiseStateAtomicFlat<T, M>;
+export function flattenState<T, M extends FlatMode>(state: PromiseStateAtomic<T>, mode: M): PromiseStateAtomicFlat<T, M>;
 
 // @public (undocumented)
 export type PromiseResultAtomic<T> = PromiseStateInvariantFulfilled<T> | PromiseStateInvariantRejected;
@@ -160,22 +161,22 @@ export function useErrorRetry(state: PromiseStateAtomic<unknown>, retry: () => v
 };
 
 // @public (undocumented)
-export function useParamScope<E>(key: Ref<boolean>, setup: () => E): Ref<null | ScopeExpose<E>>;
+export function useParamScope<E, K extends ScopeKey, P>(key: WatchSource<ComposedKey<K, P>>, setup: (payload: P, key: K) => E): Ref<ScopeExposeWithComposedKey<E, K, P>>;
 
 // @public (undocumented)
-export function useParamScope<E, K extends ScopeKey>(key: Ref<K>, setup: (key: K) => E): Ref<ScopeExposeWithKey<E, K>>;
+export function useParamScope<E, K extends ScopeKey, P>(key: WatchSource<FalsyScopeKey | ComposedKey<K, P>>, setup: (payload: P, key: K) => E): Ref<null | ScopeExposeWithComposedKey<E, K, P>>;
 
 // @public (undocumented)
-export function useParamScope<E, K extends ScopeKey>(key: Ref<K>, setup: (key: K) => E): Ref<ScopeExposeWithKey<E, K>>;
+export function useParamScope<E, K extends ScopeKey>(key: WatchSource<K>, setup: (key: K) => E): Ref<ScopeExposeWithKey<E, K>>;
 
 // @public (undocumented)
-export function useParamScope<E, K extends ScopeKey>(key: Ref<FalsyScopeKey | K>, setup: (key: K) => E): Ref<null | ScopeExposeWithKey<E, K>>;
+export function useParamScope<E, K extends ScopeKey>(key: WatchSource<K>, setup: (key: K) => E): Ref<ScopeExposeWithKey<E, K>>;
 
 // @public (undocumented)
-export function useParamScope<E, K extends ScopeKey, P>(key: Ref<ComposedKey<K, P>>, setup: (payload: P) => E): Ref<ScopeExposeWithComposedKey<E, K, P>>;
+export function useParamScope<E, K extends ScopeKey>(key: WatchSource<FalsyScopeKey | K>, setup: (key: K) => E): Ref<null | ScopeExposeWithKey<E, K>>;
 
 // @public (undocumented)
-export function useParamScope<E, K extends ScopeKey, P>(key: Ref<FalsyScopeKey | ComposedKey<K, P>>, setup: (payload: P) => E): Ref<null | ScopeExposeWithComposedKey<E, K, P>>;
+export function useParamScope<E>(key: WatchSource<boolean>, setup: () => E): Ref<null | ScopeExpose<E>>;
 
 // @public (undocumented)
 export function usePromise<T>(): UsePromiseReturn<T>;
@@ -189,16 +190,6 @@ export interface UsePromiseReturn<T> {
     // (undocumented)
     state: PromiseStateAtomic<T>;
 }
-
-// @public (undocumented)
-export function useScopeWithAdvancedKey<K extends string | number | symbol, P, S>(key: Ref<null | {
-    key: K;
-    payload: P;
-}>, fn: (payload: P) => S): Ref<null | {
-    expose: S;
-    key: K;
-    payload: P;
-}>;
 
 // @public (undocumented)
 export function useStaleState<T>(state: PromiseStateAtomic<T>): PromiseStaleState<T>;
