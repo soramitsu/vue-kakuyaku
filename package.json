@@ -10,7 +10,7 @@
     "build:core": "pnpm --filter core run build",
     "api:run": "api-extractor run -c ./packages/core/api-extractor.json",
     "api:run:local": "pnpm run api:run -l",
-    "publish-all": "pnpm publish packages/core --no-git-checks --access public",
+    "publish-all": "pnpm publish packages/core --access public",
     "format": "prettier '**/**.{js,ts,json,md}'",
     "format:check": "pnpm format --check",
     "fail-if-ci": "tsx etc/fail-ci"
