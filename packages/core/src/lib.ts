@@ -2,12 +2,14 @@ import {
   EffectScope,
   Ref,
   WatchOptions,
+  WatchSource,
   WatchStopHandle,
   computed,
   effectScope,
   getCurrentScope,
+  isRef,
   markRaw,
-  reactive,
+  readonly,
   ref,
   shallowReactive,
   shallowReadonly,
@@ -149,14 +151,13 @@ export function usePromise<T>(): UsePromiseReturn<T> {
         }
       })
       .catch((reason) => {
-        console.log('caught', reason)
         if (promise === active) {
           state.pending = false
           state.rejected = markRaw({ reason })
-        } else {
-          // to not silent it
-          throw reason
         }
+        // should we re-throw error further, or just silent it?
+        // we do silent, because in this case it is like an abortation
+        // of the promise, and any of its results is ignored
       })
   }
 
@@ -203,31 +204,6 @@ export function useStaleState<T>(state: PromiseStateAtomic<T>): PromiseStaleStat
   return staleState
 }
 
-export function useScopeWithAdvancedKey<K extends string | number | symbol, P, S>(
-  key: Ref<null | { key: K; payload: P }>,
-  fn: (payload: P) => S,
-): Ref<null | { expose: S; key: K; payload: P }> {
-  const { scope, setup, dispose } = useDeferredScope<{ expose: S; key: K; payload: P }>()
-
-  watch(
-    () => key.value?.key,
-    (actualKey) => {
-      if (!actualKey) {
-        dispose()
-      } else {
-        setup(() => {
-          const { payload } = key.value!
-          const expose = fn(payload)
-          return { expose, payload, key: actualKey }
-        })
-      }
-    },
-    { immediate: true },
-  )
-
-  return computed(() => scope.value?.expose ?? null)
-}
-
 /**
  * # Notes
  *
@@ -270,10 +246,7 @@ type PromiseStateAtomicFlat<T, M extends FlatMode> =
 
 export function flattenState<T>(state: PromiseStateAtomic<T>): PromiseStateAtomicFlat<T, 'fulfilled'>
 
-export function flattenState<T, M extends FlatMode = 'fulfilled'>(
-  state: PromiseStateAtomic<T>,
-  mode: M,
-): PromiseStateAtomicFlat<T, M>
+export function flattenState<T, M extends FlatMode>(state: PromiseStateAtomic<T>, mode: M): PromiseStateAtomicFlat<T, M>
 
 export function flattenState<T, M extends FlatMode>(
   state: PromiseStateAtomic<T>,
@@ -283,7 +256,7 @@ export function flattenState<T, M extends FlatMode>(
 
   const definitelyMode = (mode ?? 'fulfilled') as M
 
-  return reactive({
+  return readonly({
     pending: computed(() => state.pending),
     fulfilled:
       definitelyMode === 'all' || definitelyMode === 'fulfilled'
@@ -320,48 +293,61 @@ export interface ComposedKey<K extends ScopeKey, P> {
   payload: P
 }
 
-export function useParamScope<E>(key: Ref<boolean>, setup: () => E): Ref<null | ScopeExpose<E>>
-export function useParamScope<E, K extends ScopeKey>(key: Ref<K>, setup: (key: K) => E): Ref<ScopeExposeWithKey<E, K>>
-export function useParamScope<E, K extends ScopeKey>(key: Ref<K>, setup: (key: K) => E): Ref<ScopeExposeWithKey<E, K>>
-export function useParamScope<E, K extends ScopeKey>(
-  key: Ref<FalsyScopeKey | K>,
-  setup: (key: K) => E,
-): Ref<null | ScopeExposeWithKey<E, K>>
 export function useParamScope<E, K extends ScopeKey, P>(
-  key: Ref<ComposedKey<K, P>>,
-  setup: (payload: P) => E,
+  key: WatchSource<ComposedKey<K, P>>,
+  setup: (payload: P, key: K) => E,
 ): Ref<ScopeExposeWithComposedKey<E, K, P>>
 export function useParamScope<E, K extends ScopeKey, P>(
-  key: Ref<FalsyScopeKey | ComposedKey<K, P>>,
-  setup: (payload: P) => E,
+  key: WatchSource<FalsyScopeKey | ComposedKey<K, P>>,
+  setup: (payload: P, key: K) => E,
 ): Ref<null | ScopeExposeWithComposedKey<E, K, P>>
+export function useParamScope<E, K extends ScopeKey>(
+  key: WatchSource<K>,
+  setup: (key: K) => E,
+): Ref<ScopeExposeWithKey<E, K>>
+export function useParamScope<E, K extends ScopeKey>(
+  key: WatchSource<K>,
+  setup: (key: K) => E,
+): Ref<ScopeExposeWithKey<E, K>>
+export function useParamScope<E, K extends ScopeKey>(
+  key: WatchSource<FalsyScopeKey | K>,
+  setup: (key: K) => E,
+): Ref<null | ScopeExposeWithKey<E, K>>
+export function useParamScope<E>(key: WatchSource<boolean>, setup: () => E): Ref<null | ScopeExpose<E>>
 
 export function useParamScope<E, K extends ScopeKey, P>(
-  key: Ref<FalsyScopeKey | true | K | ComposedKey<K, P>>,
-  setup: (keyOrPayload?: K | P) => E,
+  key: WatchSource<FalsyScopeKey | true | K | ComposedKey<K, P>>,
+  setup: (keyOrPayload?: K | P, key?: K) => E,
 ): Ref<null | ScopeExpose<E> | ScopeExposeWithKey<E, ScopeKey>> {
   const deferred = useDeferredScope<ScopeExpose<E> | ScopeExposeWithKey<E, ScopeKey>>()
 
+  const keyRef = isRef(key) ? key : computed(() => key())
+
   watch(
-    key,
-    (actualKey) => {
-      if (!actualKey) {
+    () => {
+      const extracted = keyRef.value
+      const theKey = extracted ? (typeof extracted === 'object' ? extracted.key : extracted) : null
+      return theKey
+    },
+    (value) => {
+      if (!value) {
         deferred.dispose()
       } else {
         deferred.setup(() => {
-          return actualKey === true
-            ? {
-                expose: setup(),
-              }
-            : typeof actualKey === 'object'
-            ? {
-                expose: setup(actualKey.payload),
-                ...actualKey,
-              }
-            : {
-                key: actualKey,
-                expose: setup(actualKey),
-              }
+          const restored = keyRef.value
+
+          // this line is unnecessary, because this watcher branch is reachable only
+          // if keyRef is truthy
+          // anyway, this check is here for typing
+          // FIXME
+          if (!restored) throw new Error()
+
+          if (restored === true) return { expose: setup() }
+          if (typeof restored !== 'object') return { key: restored, expose: setup(restored) }
+          return {
+            ...restored,
+            expose: setup(restored.payload, restored.key),
+          }
         })
       }
     },
