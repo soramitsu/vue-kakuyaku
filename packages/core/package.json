@@ -10,7 +10,7 @@
     "composition-api",
     "error-retry"
   ],
-  "version": "0.3.0",
+  "version": "0.4.0",
   "license": "MIT",
   "publishConfig": {
     "access": "public"
@@ -29,11 +29,13 @@
   "exports": {
     ".": {
       "import": "./dist/vue-kakuyaku.mjs",
-      "require": "./dist/vue-kakuyaku.cjs"
+      "require": "./dist/vue-kakuyaku.cjs",
+      "types": "./dist/vue-kakuyaku.d.ts"
     }
   },
   "files": [
-    "dist"
+    "dist",
+    "CHANGELOG.md"
   ],
   "dependencies": {
     "@vueuse/core": "^8.7.5",
