@@ -54,15 +54,20 @@ export interface ErrorRetryOptions {
 // @public (undocumented)
 export type FalsyScopeKey = false | null | undefined;
 
-// Warning: (ae-forgotten-export) The symbol "PromiseStateAtomicFlat" needs to be exported by the entry point lib.d.ts
-//
+// @public (undocumented)
+export type FlatMode = 'all' | 'fulfilled' | 'rejected';
+
 // @public (undocumented)
 export function flattenState<T>(state: PromiseStateAtomic<T>): PromiseStateAtomicFlat<T, 'fulfilled'>;
 
-// Warning: (ae-forgotten-export) The symbol "FlatMode" needs to be exported by the entry point lib.d.ts
-//
 // @public (undocumented)
 export function flattenState<T, M extends FlatMode>(state: PromiseStateAtomic<T>, mode: M): PromiseStateAtomicFlat<T, M>;
+
+// @public (undocumented)
+export type KeyedScopeExpose<E, U extends UniScopeKey> = ScopeExpose<E> & SpreadKey<U>;
+
+// @public (undocumented)
+export type KeyOnly<U extends UniScopeKey> = U extends ComposedKey<infer K, any> ? K : U;
 
 // @public (undocumented)
 export type PromiseResultAtomic<T> = PromiseStateInvariantFulfilled<T> | PromiseStateInvariantRejected;
@@ -87,6 +92,9 @@ export interface PromiseStaleState<T> {
 export type PromiseStateAtomic<T> = PromiseStateInvariantEmpty | PromiseStateInvariantPending | PromiseResultAtomic<T>;
 
 // @public (undocumented)
+export type PromiseStateAtomicFlat<T, M extends FlatMode> = PromiseStateInvariantEmpty | PromiseStateInvariantPending | PromiseStateInvariantFulfilledFlat<T, M> | PromiseStateInvariantRejectedFlat<M>;
+
+// @public (undocumented)
 export interface PromiseStateInvariantEmpty {
     // (undocumented)
     fulfilled: null;
@@ -100,6 +108,18 @@ export interface PromiseStateInvariantEmpty {
 export interface PromiseStateInvariantFulfilled<T> {
     // (undocumented)
     fulfilled: {
+        value: T;
+    };
+    // (undocumented)
+    pending: false;
+    // (undocumented)
+    rejected: null;
+}
+
+// @public (undocumented)
+export interface PromiseStateInvariantFulfilledFlat<T, M extends FlatMode> {
+    // (undocumented)
+    fulfilled: M extends 'all' | 'fulfilled' ? T : {
         value: T;
     };
     // (undocumented)
@@ -131,25 +151,36 @@ export interface PromiseStateInvariantRejected {
 }
 
 // @public (undocumented)
-export interface ScopeExpose<T> {
+export interface PromiseStateInvariantRejectedFlat<M extends FlatMode> {
     // (undocumented)
-    expose: T;
+    fulfilled: null;
+    // (undocumented)
+    pending: false;
+    // (undocumented)
+    rejected: M extends 'all' | 'rejected' ? unknown : {
+        reason: unknown;
+    };
 }
 
 // @public (undocumented)
-export interface ScopeExposeWithComposedKey<T, K extends ScopeKey, P> extends ScopeExposeWithKey<T, K> {
+export interface ScopeExpose<E> {
     // (undocumented)
-    payload: P;
-}
-
-// @public (undocumented)
-export interface ScopeExposeWithKey<T, K extends ScopeKey> extends ScopeExpose<T> {
-    // (undocumented)
-    key: K;
+    expose: E;
 }
 
 // @public
 export type ScopeKey = string | number | symbol;
+
+// @public (undocumented)
+export type SpreadKey<U extends UniScopeKey> = U extends ComposedKey<infer K, infer P> ? {
+    key: K;
+    payload: P;
+} : {
+    key: U;
+};
+
+// @public (undocumented)
+export type UniScopeKey = ScopeKey | ComposedKey<ScopeKey, any>;
 
 // @public
 export function useDeferredScope<T>(): DeferredScope<T>;
@@ -161,22 +192,7 @@ export function useErrorRetry(state: PromiseStateAtomic<unknown>, retry: () => v
 };
 
 // @public (undocumented)
-export function useParamScope<E, K extends ScopeKey, P>(key: WatchSource<ComposedKey<K, P>>, setup: (payload: P, key: K) => E): Ref<ScopeExposeWithComposedKey<E, K, P>>;
-
-// @public (undocumented)
-export function useParamScope<E, K extends ScopeKey, P>(key: WatchSource<FalsyScopeKey | ComposedKey<K, P>>, setup: (payload: P, key: K) => E): Ref<null | ScopeExposeWithComposedKey<E, K, P>>;
-
-// @public (undocumented)
-export function useParamScope<E, K extends ScopeKey>(key: WatchSource<K>, setup: (key: K) => E): Ref<ScopeExposeWithKey<E, K>>;
-
-// @public (undocumented)
-export function useParamScope<E, K extends ScopeKey>(key: WatchSource<K>, setup: (key: K) => E): Ref<ScopeExposeWithKey<E, K>>;
-
-// @public (undocumented)
-export function useParamScope<E, K extends ScopeKey>(key: WatchSource<FalsyScopeKey | K>, setup: (key: K) => E): Ref<null | ScopeExposeWithKey<E, K>>;
-
-// @public (undocumented)
-export function useParamScope<E>(key: WatchSource<boolean>, setup: () => E): Ref<null | ScopeExpose<E>>;
+export function useParamScope<E, K extends UniScopeKey | FalsyScopeKey>(key: WatchSource<K>, setup: (resolvedKey: K & UniScopeKey) => E): Ref<K extends UniScopeKey ? KeyedScopeExpose<E, K> : null>;
 
 // @public (undocumented)
 export function usePromise<T>(): UsePromiseReturn<T>;
