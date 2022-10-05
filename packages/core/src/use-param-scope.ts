@@ -4,7 +4,7 @@ import { ScopeExpose, useDeferredScope } from './use-deferred-scope'
 /**
  * Used for scopes utilities. Primitive type (same as Vue's `:key`) to distinguish scopes from each other.
  */
-export type ScopeKey = string | number | symbol
+export type ScopeKey = string | number | symbol | true
 
 export type FalsyScopeKey = false | null | undefined
 
@@ -21,8 +21,13 @@ export type SpreadKey<U extends UniScopeKey> = U extends ComposedKey<infer K, in
 
 export type KeyOnly<U extends UniScopeKey> = U extends ComposedKey<infer K, any> ? K : U
 
+function isPlainKey(key: UniScopeKey): key is ScopeKey {
+  const ty = typeof key
+  return key === true || ty === 'string' || ty === 'number' || ty === 'symbol'
+}
+
 function getKeyOnly<U extends UniScopeKey>(key: U): KeyOnly<U> {
-  if (typeof key === 'string') return key as KeyOnly<U>
+  if (isPlainKey(key)) return key as KeyOnly<U>
   return (key as any).key as KeyOnly<U>
 }
 
@@ -41,7 +46,7 @@ export type KeyedScopeExpose<E, U extends UniScopeKey> = ScopeExpose<E> & Spread
 export function useParamScope<E, K extends UniScopeKey | FalsyScopeKey>(
   key: WatchSource<K>,
   setup: (resolvedKey: K & UniScopeKey) => E,
-): Ref<K extends UniScopeKey ? KeyedScopeExpose<E, K> : null> {
+): Ref<K extends UniScopeKey ? (K extends true ? ScopeExpose<E> : KeyedScopeExpose<E, K>) : null> {
   const deferred = useDeferredScope<ScopeExpose<E> | KeyedScopeExpose<E, UniScopeKey>>()
 
   const filteredKey = computed(() => {
@@ -62,8 +67,12 @@ export function useParamScope<E, K extends UniScopeKey | FalsyScopeKey>(
         deferred.dispose()
       } else {
         deferred.setup(() => {
-          const fullKey = filteredKey.value!.some
+          if (onlyKey === true) {
+            const expose = setup(true as K & UniScopeKey)
+            return { expose }
+          }
 
+          const fullKey = filteredKey.value!.some
           const expose = setup(fullKey as any)
           return { expose, ...spreadKey(fullKey) }
         })
@@ -84,10 +93,23 @@ if (import.meta.vitest) {
     [undefined, null],
     ['foo', { some: 'foo' }],
     [{ key: 'jey' }, { some: { key: 'jey' } }],
+    [true, { some: true }],
   ] as [UniScopeKey | FalsyScopeKey, null | { some: UniScopeKey }][])(
     `%o is %o after falsy filter`,
     (before, after) => {
       expect(falsyKeyToMaybe(before)).toEqual(after)
     },
   )
+
+  const SYMBOL = Symbol('test')
+
+  test.each([
+    [5, 5],
+    ['foo', 'foo'],
+    [true, true],
+    [SYMBOL, SYMBOL],
+    [{ key: 'foo' }, 'foo'],
+  ])('Extracted key from %o is %o', (input, output) => {
+    expect(getKeyOnly(input as any)).toBe(output)
+  })
 }

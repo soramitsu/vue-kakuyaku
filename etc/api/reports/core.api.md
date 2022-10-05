@@ -169,7 +169,7 @@ export interface ScopeExpose<E> {
 }
 
 // @public
-export type ScopeKey = string | number | symbol;
+export type ScopeKey = string | number | symbol | true;
 
 // @public (undocumented)
 export type SpreadKey<U extends UniScopeKey> = U extends ComposedKey<infer K, infer P> ? {
@@ -192,7 +192,7 @@ export function useErrorRetry(state: PromiseStateAtomic<unknown>, retry: () => v
 };
 
 // @public (undocumented)
-export function useParamScope<E, K extends UniScopeKey | FalsyScopeKey>(key: WatchSource<K>, setup: (resolvedKey: K & UniScopeKey) => E): Ref<K extends UniScopeKey ? KeyedScopeExpose<E, K> : null>;
+export function useParamScope<E, K extends UniScopeKey | FalsyScopeKey>(key: WatchSource<K>, setup: (resolvedKey: K & UniScopeKey) => E): Ref<K extends UniScopeKey ? (K extends true ? ScopeExpose<E> : KeyedScopeExpose<E, K>) : null>;
 
 // @public (undocumented)
 export function usePromise<T>(): UsePromiseReturn<T>;
