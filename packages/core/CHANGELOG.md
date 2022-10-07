@@ -1,5 +1,11 @@
 # @vue-kakuyaku/core
 
+## 0.4.1
+
+### Patch Changes
+
+- 93ef9c3: **fix**: `useParamScope()` accepts `true` key as well
+
 ## 0.4.0
 
 ### Minor Changes

@@ -1,8 +1,11 @@
 import { describe, expect, test, vi } from 'vitest'
 import { Ref, nextTick, onScopeDispose, ref } from 'vue'
+import { ScopeExpose } from './use-deferred-scope'
 import { KeyedScopeExpose, useParamScope } from './use-param-scope'
 
-function assertType<T>(value: T): void {}
+function assertType<T>(value: T): T {
+  return value
+}
 
 assertType<Ref<null>>(
   useParamScope(
@@ -21,6 +24,20 @@ assertType<Ref<null>>(
 assertType<Ref<null | KeyedScopeExpose<number, number>>>(
   useParamScope(
     () => (Math.random() > 4 ? false : 4),
+    () => 42,
+  ),
+)
+
+assertType<Ref<null | ScopeExpose<number>>>(
+  useParamScope(
+    () => Math.random() > 0.5,
+    () => 42,
+  ),
+)
+
+assertType<Ref<ScopeExpose<number>>>(
+  useParamScope(
+    () => true,
     () => 42,
   ),
 )
@@ -71,5 +88,22 @@ describe('useParamScope', () => {
     useParamScope(() => ({ key: '123', payload: PAYLOAD }), fn)
 
     expect(fn).toBeCalledWith({ key: '123', payload: PAYLOAD })
+  })
+
+  test('when key is `true`, then setup fn is called with `true`', () => {
+    const fn = vi.fn()
+
+    useParamScope(() => true, fn)
+
+    expect(fn).toBeCalledWith(true)
+  })
+
+  test('when key is `true`, then only `expose` is provided', () => {
+    const scope = useParamScope(
+      () => true,
+      () => 42,
+    )
+
+    expect(scope.value).toEqual({ expose: 42 })
   })
 })
