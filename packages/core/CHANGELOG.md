@@ -1,5 +1,11 @@
 # @vue-kakuyaku/core
 
+## 0.4.2
+
+### Patch Changes
+
+- b57566c: **fix**: fix setup fn typings in case of composed key (`useParamScope()`)
+
 ## 0.4.1
 
 ### Patch Changes
