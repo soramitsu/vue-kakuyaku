@@ -3,9 +3,7 @@ import { Ref, nextTick, onScopeDispose, ref } from 'vue'
 import { ScopeExpose } from './use-deferred-scope'
 import { KeyedScopeExpose, useParamScope } from './use-param-scope'
 import { PromiseStateAtomic, useTask } from './use-promise-and-co'
-
-declare function assertOk<T extends 'ok'>(): void
-type OkIfEquals<T, U> = U extends T ? (T extends U ? 'ok' : 'error') : 'error'
+import { Equal, Expect } from './test-helpers'
 
 const typeAssertionsScope = false as boolean
 
@@ -15,35 +13,35 @@ if (typeAssertionsScope) {
     () => {},
   )
 
-  assertOk<OkIfEquals<typeof scopeWithNullKey, Ref<null>>>()
+  type test1 = Expect<Equal<typeof scopeWithNullKey, Ref<null>>>
 
   const scopeWithNullKeyButNumberExpose = useParamScope(
     () => null,
     () => 42,
   )
 
-  assertOk<OkIfEquals<typeof scopeWithNullKeyButNumberExpose, Ref<null>>>()
+  type test2 = Expect<Equal<typeof scopeWithNullKeyButNumberExpose, Ref<null>>>
 
   const scopeWithBoolOrNumKey = useParamScope(
     () => (Math.random() > 4 ? false : 4),
     () => 42,
   )
 
-  assertOk<OkIfEquals<typeof scopeWithBoolOrNumKey, Ref<null | KeyedScopeExpose<number, 4>>>>()
+  type test3 = Expect<Equal<typeof scopeWithBoolOrNumKey, Ref<null | KeyedScopeExpose<number, 4>>>>
 
   const scopeWithBoolKey = useParamScope(
     () => Math.random() > 0.5,
     () => 42,
   )
 
-  assertOk<OkIfEquals<typeof scopeWithBoolKey, Ref<null | ScopeExpose<number>>>>()
+  type test4 = Expect<Equal<typeof scopeWithBoolKey, Ref<null | ScopeExpose<number>>>>
 
   const scopeWithTrueKey = useParamScope(
     () => true,
     () => 42,
   )
 
-  assertOk<OkIfEquals<typeof scopeWithTrueKey, Ref<ScopeExpose<number>>>>()
+  type test5 = Expect<Equal<typeof scopeWithTrueKey, Ref<ScopeExpose<number>>>>
 
   useParamScope(
     () => {
@@ -59,10 +57,10 @@ if (typeAssertionsScope) {
     ({ payload }) => {
       const { state } = useTask(async () => payload.foo)
 
-      assertOk<typeof state extends PromiseStateAtomic<string> ? 'ok' : 'err'>()
+      type test1 = Expect<typeof state extends PromiseStateAtomic<string> ? true : false>
 
       // check state `state` is not `any`
-      assertOk<typeof state extends PromiseStateAtomic<number> ? 'err' : 'ok'>()
+      type test2 = Expect<typeof state extends PromiseStateAtomic<number> ? false : true>
     },
   )
 }
