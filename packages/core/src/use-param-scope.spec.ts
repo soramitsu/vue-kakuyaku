@@ -2,45 +2,70 @@ import { describe, expect, test, vi } from 'vitest'
 import { Ref, nextTick, onScopeDispose, ref } from 'vue'
 import { ScopeExpose } from './use-deferred-scope'
 import { KeyedScopeExpose, useParamScope } from './use-param-scope'
+import { PromiseStateAtomic, useTask } from './use-promise-and-co'
 
-function assertType<T>(value: T): T {
-  return value
-}
+declare function assertOk<T extends 'ok'>(): void
+type OkIfEquals<T, U> = U extends T ? (T extends U ? 'ok' : 'error') : 'error'
 
-assertType<Ref<null>>(
-  useParamScope(
+const typeAssertionsScope = false as boolean
+
+if (typeAssertionsScope) {
+  const scopeWithNullKey = useParamScope(
     () => null,
     () => {},
-  ),
-)
+  )
 
-assertType<Ref<null>>(
-  useParamScope(
+  assertOk<OkIfEquals<typeof scopeWithNullKey, Ref<null>>>()
+
+  const scopeWithNullKeyButNumberExpose = useParamScope(
     () => null,
     () => 42,
-  ),
-)
+  )
 
-assertType<Ref<null | KeyedScopeExpose<number, number>>>(
-  useParamScope(
+  assertOk<OkIfEquals<typeof scopeWithNullKeyButNumberExpose, Ref<null>>>()
+
+  const scopeWithBoolOrNumKey = useParamScope(
     () => (Math.random() > 4 ? false : 4),
     () => 42,
-  ),
-)
+  )
 
-assertType<Ref<null | ScopeExpose<number>>>(
-  useParamScope(
+  assertOk<OkIfEquals<typeof scopeWithBoolOrNumKey, Ref<null | KeyedScopeExpose<number, 4>>>>()
+
+  const scopeWithBoolKey = useParamScope(
     () => Math.random() > 0.5,
     () => 42,
-  ),
-)
+  )
 
-assertType<Ref<ScopeExpose<number>>>(
-  useParamScope(
+  assertOk<OkIfEquals<typeof scopeWithBoolKey, Ref<null | ScopeExpose<number>>>>()
+
+  const scopeWithTrueKey = useParamScope(
     () => true,
     () => 42,
-  ),
-)
+  )
+
+  assertOk<OkIfEquals<typeof scopeWithTrueKey, Ref<ScopeExpose<number>>>>()
+
+  useParamScope(
+    () => {
+      // eslint-disable-next-line @typescript-eslint/no-inferrable-types
+      const value: boolean = false
+      if (value) return null
+
+      return {
+        key: 'abc',
+        payload: { foo: 'bar' },
+      }
+    },
+    ({ payload }) => {
+      const { state } = useTask(async () => payload.foo)
+
+      assertOk<typeof state extends PromiseStateAtomic<string> ? 'ok' : 'err'>()
+
+      // check state `state` is not `any`
+      assertOk<typeof state extends PromiseStateAtomic<number> ? 'err' : 'ok'>()
+    },
+  )
+}
 
 describe('useParamScope', () => {
   test('when composed key is updated to the same key, scope is still', async () => {

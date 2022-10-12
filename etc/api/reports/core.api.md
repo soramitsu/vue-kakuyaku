@@ -192,7 +192,7 @@ export function useErrorRetry(state: PromiseStateAtomic<unknown>, retry: () => v
 };
 
 // @public (undocumented)
-export function useParamScope<E, K extends UniScopeKey | FalsyScopeKey>(key: WatchSource<K>, setup: (resolvedKey: K & UniScopeKey) => E): Ref<K extends UniScopeKey ? (K extends true ? ScopeExpose<E> : KeyedScopeExpose<E, K>) : null>;
+export function useParamScope<E, K extends UniScopeKey | FalsyScopeKey>(key: WatchSource<K>, setup: (resolvedKey: K extends UniScopeKey ? K : never) => E): Ref<K extends UniScopeKey ? (K extends true ? ScopeExpose<E> : KeyedScopeExpose<E, K>) : null>;
 
 // @public (undocumented)
 export function usePromise<T>(): UsePromiseReturn<T>;

@@ -45,7 +45,7 @@ export type KeyedScopeExpose<E, U extends UniScopeKey> = ScopeExpose<E> & Spread
 
 export function useParamScope<E, K extends UniScopeKey | FalsyScopeKey>(
   key: WatchSource<K>,
-  setup: (resolvedKey: K & UniScopeKey) => E,
+  setup: (resolvedKey: K extends UniScopeKey ? K : never) => E,
 ): Ref<K extends UniScopeKey ? (K extends true ? ScopeExpose<E> : KeyedScopeExpose<E, K>) : null> {
   const deferred = useDeferredScope<ScopeExpose<E> | KeyedScopeExpose<E, UniScopeKey>>()
 
@@ -68,7 +68,7 @@ export function useParamScope<E, K extends UniScopeKey | FalsyScopeKey>(
       } else {
         deferred.setup(() => {
           if (onlyKey === true) {
-            const expose = setup(true as K & UniScopeKey)
+            const expose = setup(true as any)
             return { expose }
           }
 
