@@ -64,10 +64,6 @@ Let's proceed to the utilities built around `PromiseStateAtomic<T>`.
 
 This composable gives a basic reactive model over any promise you put into it:
 
-- Reactive `state` which is `PromiseStateAtomic<T>`
-- Method to `set(promise: Promise<T>)` so its state will be reflected in `state`
-- Method to `clear()` the composable to the initial empty state.
-
 ```ts
 import { computed } from 'vue'
 
@@ -84,9 +80,15 @@ const isPending = computed(() => state.pending)
 // passing a `Promise<string>`
 set(getString())
 
-// forget the currently tracked promise if there is one
+// forget the currently tracked promise if there is any
 clear()
 ```
+
+`usePromise<T>()` composable returns:
+
+- Reactive **`state`** which is `PromiseStateAtomic<T>`
+- Method to **set** a promise (`set(promise: Promise<T>)`) so its state will be reflected in `state`
+- Method to **clear** (`clear()`) the composable to the initial empty state.
 
 **Note**: if a new promise is `set` while the previous one is pending, the result of the previous is ignored.
 
