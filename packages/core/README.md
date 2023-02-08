@@ -241,9 +241,9 @@ This utility might be useful in simple scenarios. However, it cannot be compared
 
 ### Set up an async action in separate scope with `useDeferredScope()`
 
-When it comes to modelling async actions within a component (or any other reactive scope), it might become a mess if an action's lifetime is not the same as the lifetime of the component. The action might be initialised on one event and be discarded on another. During the **component's** setup stage, you might need to set up reactive functionality around this action, such as timers, retrying, or showing notifications.
+When it comes to modelling async actions within a component (or any other reactive scope), it might become a mess if an action's lifetime is not the same as the lifetime of the component. The action might be initialised on one event and be discarded on another. During the **component's** setup stage, you might need to set up reactive logic around this action, such as timers, retrying, or showing notifications.
 
-Fortunately, Vue provides [API](https://github.com/vuejs/rfcs/blob/master/active-rfcs/0041-reactivity-effect-scope.md) for creating your own scopes! With them, you can isolate async actions and their reactive functionality within a dedicated scope, which you can set up and dispose at any time. `useDeferredScope<T>()` does exactly this.
+Fortunately, Vue provides [API](https://github.com/vuejs/rfcs/blob/master/active-rfcs/0041-reactivity-effect-scope.md) for creating your own scopes! With them, you can isolate async actions and their reactive logic within a dedicated scope, which you can set up and dispose at any time. `useDeferredScope<T>()` does exactly this.
 
 Check this example to see how it works:
 
