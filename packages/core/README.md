@@ -25,7 +25,7 @@ npm install @vue-kakuyaku/core
 
 ### Atomic Promise State
 
-The core primitive type of the library is `PromiseStateAtomic<T>`. It describes all possible states of a Promise in a given time in **type-safe** and **exclusive** manner.
+The core primitive type of the library is `PromiseStateAtomic<T>`. It describes all possible states of a Promise at a given time in **type-safe** and **exclusive** manner.
 
 `PromiseStateAtomic<T>` is a set of mutually exclusive invariants:
 
@@ -41,24 +41,24 @@ type PromiseStateAtomic<T> =
   | { rejected: { reason: unknown }; fulfilled: null; pending: false }
 ```
 
-It is **type-safe** (relatively to other libraries which work with promises), because:
+Compared to other libraries that work with promises, `PromiseStateAtomic<T>` is **type-safe** for the following reasons:
 
 - Empty `fulfilled` and `rejected` states are deterministically distinguished from their existence, even if the promise resolves/rejects with a nullable value.
-- `rejected.reason` is an `unknown`, not an `Error` or unsafe `any`, which is how JavaScript works - literally everything could be `throw`n.
+- `rejected.reason` is an `unknown`, not an `Error` or unsafe `any`, which is how JavaScript works: anything could be `throw`n.
 
-It is **exclusive**, because with it TypeScript might know that the promise is either pending, rejected, fulfilled or empty, and not a mix of them. Thus, TypeScript narrows types on assertions:
+`PromiseStateAtomic<T>` is **exclusive** because at any given moment promise is either pending, rejected, fulfilled or empty, and not a mix of them. Thus, TypeScript narrows types on assertions:
 
 ```ts
 declare const state: PromiseStateAtomic<string>
 
 if (state.pending) {
-  // no error - TypeScript narrows the types of
+  // No error: TypeScript narrows the types of
   // `rejected` and `fulfilled`
   const a: null = state.rejected || state.fulfilled
 }
 ```
 
-Having `PromiseStateAtomic<T>`, we can proceed to the utilities built around it.
+Let's proceed to the utilities built around `PromiseStateAtomic<T>`.
 
 ### Basics with `usePromise()`
 
@@ -88,7 +88,7 @@ set(getString())
 clear()
 ```
 
-**Note**: if a new promise is `set` while the previous one is pending, the result of the previous one will be completely ignored.
+**Note**: if a new promise is `set` while the previous one is pending, the result of the previous is ignored.
 
 ### Repetitive action with `useTask()`
 
@@ -104,7 +104,7 @@ const { state, run, clear } = useTask(async () => {
 run()
 ```
 
-The task could be run immediately if the options is passed:
+The task could be run immediately if the options are passed:
 
 ```ts
 const task1 = useTask(fn, {
@@ -117,7 +117,7 @@ const task2 = useTask(fn)
 task2.run()
 ```
 
-The question might be asked: why not accept parameters in `run(...args)` and forward them into the async function? TODO Because TypeScript is not good at extracting parameter types especially for overloaded fns, and because if there are reactive parameters, then "scopes" are better to be used.
+You might ask: why not accept parameters in `run(...args)` and forward them into the async function? TypeScript is not good at extracting parameter types, especially for overloaded functions. This means that if there are reactive parameters, it is better to use scopes.
 
 ### Watcher shorthands for the state
 
@@ -157,7 +157,7 @@ wheneverDone(state, (result) => {
 })
 ```
 
-Each watcher accepts `options` which are identical to those which `watch` accepts.
+Each watcher accepts `options` which are identical to the options that `watch` accepts.
 
 ### Flatten the state with `flattenState()`
 
@@ -171,7 +171,7 @@ if (state.fulfilled) {
 }
 ```
 
-In this example, there is no need for `fulfilled` to be `null | { value: { bar: 'baz' } }` in order to distinguish empty fulfilled state from existing one - it would be enought to be just `null | { bar: 'baz' }`.
+In this example, there is no need for `fulfilled` to be `null | { value: { bar: 'baz' } }` in order to distinguish empty fulfilled state from the existing one. It would be enough to use `null | { bar: 'baz' }`.
 
 For such a case, the state could be reactively flattened when there is no need for nested `fulfilled.value` and `rejected.reason` fields:
 
@@ -183,7 +183,7 @@ if (flattenedState.fulfilled) {
 }
 ```
 
-`mode` argument could be passed to control which fields are flattened:
+You can pass `mode` argument to control which fields are flattened:
 
 ```ts
 // `all`, `fulfilled` (default) and `rejected` are accepted
@@ -192,7 +192,7 @@ flattenState(state, 'all')
 
 ### Retry on error with `useErrorRetry()`
 
-This composable watches for the promise's state and, if it is rejected, invokes the callback (assuming that it will trigger the state to refresh) for a given amount of times with a given interval.
+This composable watches for the promise's state. If it is `rejected`, the composable invokes the callback (assuming that it will trigger the state to refresh) for a given number of times with a given interval.
 
 ```ts
 const { state, run } = useTask(
@@ -231,11 +231,11 @@ interface PromiseStaleState<T> {
 }
 ```
 
-When the _atomic_ state becomes _fulfilled_, the _stale_ state updates its `fulfilled` too, removing the last rejection reason if there were some. When the _atomic_ state becomes _rejected_, the _stale_ state only updates rejection reason, without touching the last `fulfilled` value.
+When the _atomic_ state becomes _fulfilled_, the _stale_ state updates its `fulfilled` value and removes the last rejection reason if there was any. When the _atomic_ state becomes _rejected_, the _stale_ state only updates the rejection reason without touching the last `fulfilled` value.
 
-`PromiseStaleState<T>` type is not [_exclusive_](#atomic-promise-state) - the stale state might have a fulfilled value, a rejection reason and be pending **at the same time**. You might think of it as a `PromiseStateAtomic<T>` with memory about its previous executions.
+`PromiseStaleState<T>` type is not [_exclusive_](#atomic-promise-state): the stale state might have a fulfilled value, a rejection reason and be pending **at the same time**. You might think of it as of a `PromiseStateAtomic<T>` with memory about its previous executions.
 
-This utility might be useful in simple scenarios. However, it cannot be compared with libraries such as [`Kong/swrv`](https://github.com/Kong/swrv) or [`ConsoleTVs/vswr`](https://github.com/ConsoleTVs/vswr) - they implement SWR pattern in a much more comprehensive way. Anyway, they have their own drawbacks, thus `@vue-kakuyaku/swr` is planned to be a competitive solution.
+This utility might be useful in simple scenarios. However, it cannot be compared to libraries such as [`Kong/swrv`](https://github.com/Kong/swrv) or [`ConsoleTVs/vswr`](https://github.com/ConsoleTVs/vswr), which implement SWR pattern in a much more comprehensive way. However, these libraries have their own drawbacks. Thus, `@vue-kakuyaku/swr` is planned to be a competitive solution.
 
 ### Set up an async action in separate scope with `useDeferredScope()`
 
@@ -243,7 +243,7 @@ When it comes to modeling async actions within a component (or any other reactiv
 
 Luckily for us, Vue provides [API](https://github.com/vuejs/rfcs/blob/master/active-rfcs/0041-reactivity-effect-scope.md) for creating our own scopes! With them, we can isolate async actions and their reactive stuff within a dedicated scope which we can set up and dispose at any time. `useDeferredScope<T>()` does exactly this.
 
-See how it works by example:
+Check this example to see how it works:
 
 ```ts
 interface Params {
@@ -269,7 +269,7 @@ function doLogin(params: Params) {
   // if the scope is already set up, it will be disposed
   loginSetup(() => {
     // during this function we can setup any reactive logic and
-    // be calm that it will be cleared automatically on scope dispose
+    // be sure that it will be cleared automatically on scope dispose
 
     const { state, run } = useTask(() => httpLogin(params), {
       immediate: true,
@@ -290,15 +290,15 @@ function retryLogin() {
 }
 ```
 
-> We use `expose` keyword, trying to follow [existing Vue semantics](https://vuejs.org/api/options-state.html#expose) around this keyword.
+> We follow [existing Vue semantics](https://vuejs.org/api/options-state.html#expose) around the `expose` keyword.
 
-This utility is a bit low-level and not very useful for a very common case - when you need to set up an async action, based on reactive parameters. The next section gives a solution for it.
+This utility is a bit low-level. One of the very common cases when this utility is not very useful is when you need to set up an async action based on reactive parameters. The next section provides a solution for this scenario.
 
 ### Reactively parametrised scope with `useParamScope()`
 
-Such a common scenario: use have a reactive `userId` and you need to fetch a user data, according to the ID. Additionally, you might need to set up some reactive logic around it.
+Consider the following common scenario: you have a reactive `userId` and you need to fetch user data for the given ID. Additionally, you might need to set up some reactive logic around it.
 
-Here is how it might look with `useParamScope()`:
+Here is how it might look when you use `useParamScope()`:
 
 ```ts
 const userId = ref(1)
@@ -345,7 +345,7 @@ const scope = useParamScope(
 )
 ```
 
-The key might be `boolean` in case when you need just to toggle the scope's existence:
+The key might be `boolean` if you only need to toggle the scope's existence:
 
 ```ts
 const enabled = ref(false)

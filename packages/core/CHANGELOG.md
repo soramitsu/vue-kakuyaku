@@ -4,7 +4,7 @@
 
 ### Patch Changes
 
-- **docs**: vastly extend README
+- **docs**: extend README
 
 ## 0.4.2
 
