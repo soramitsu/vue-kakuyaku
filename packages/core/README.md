@@ -13,7 +13,7 @@ This is the core library of `vue-kakuyaku` project.
   - [Retry-on-error](#retry-on-error-with-useerrorretry)
   - [Stale-if-error](#stale-if-error-with-usestalestate) state
   - [Shorthand watchers](#watcher-shorthands-for-the-state) for task results
-  - [Non-parametrised](#set-up-an-async-action-in-separate-scope-with-usedeferredscope) and [reactively parametrised](#reactively-parametrised-scope-with-useparamscope) scopes to model async operations stronger
+  - [Non-parametrised](#set-up-an-async-action-in-separate-scope-with-usedeferredscope) and [reactively parametrised](#reactively-parametrised-scope-with-useparamscope) scopes to model async operations in a more modular way
 
 ## Installation
 
@@ -43,7 +43,7 @@ type PromiseStateAtomic<T> =
 
 Compared to other libraries that work with promises, `PromiseStateAtomic<T>` is **type-safe** for the following reasons:
 
-- Empty `fulfilled` and `rejected` states are deterministically distinguished from their existence, even if the promise resolves/rejects with a nullable value.
+- Empty `fulfilled` and `rejected` states are easily distinguished. You don't need to guess if `state.fulfilled === null` means that the promise is not fulfilled yet or if it is resolved with `null` value. `state.fulfilled` is `null | { some: T }`, so if there is *some* `state.fulfilled`, then the promise is fulfilled. Same for `state.rejected`.
 - `rejected.reason` is an `unknown`, not an `Error` or unsafe `any`, which is how JavaScript works: anything could be `throw`n.
 
 `PromiseStateAtomic<T>` is **exclusive** because at any given moment promise is either pending, rejected, fulfilled or empty, and not a mix of them. Thus, TypeScript narrows types on assertions:
@@ -86,9 +86,9 @@ clear()
 
 `usePromise<T>()` composable returns:
 
-- Reactive **`state`** which is `PromiseStateAtomic<T>`
-- Method to **set** a promise (`set(promise: Promise<T>)`) so its state will be reflected in `state`
-- Method to **clear** (`clear()`) the composable to the initial empty state.
+- Reactive **`state`** (`PromiseStateAtomic<T>`)
+- The method to **set** a promise (`set(promise: Promise<T>)`) so its state is reflected in `state`
+- The method to **clear** (`clear()`) the composable to the initial empty state
 
 **Note**: if a new promise is `set` while the previous one is pending, the result of the previous is ignored.
 
@@ -214,7 +214,7 @@ useErrorRetry(state, () => run(), {
 
 ### Stale if error with `useStaleState()`
 
-This composable is a tiny and lightweight implementation of [stale-while-revalidate](https://web.dev/stale-while-revalidate/) pattern. In short, it is about caching and using successful result while they are revalidating, even with failures.
+This composable is a tiny and lightweight implementation of [stale-while-revalidate](https://web.dev/stale-while-revalidate/) pattern. In short, it is about caching and using successful result while the state of async task is revalidating, even with failures.
 
 ```ts
 declare const state: PromiseStateAtomic<string>
@@ -326,7 +326,7 @@ const scope = useParamScope(
 const userData = computed(() => scope.value.expose.fulfilled?.value)
 ```
 
-Whenever the reactive (and **primitive**, i.e. `number | string | symbol | boolean`, such as [Vue's `key` attr](https://vuejs.org/api/built-in-special-attributes.html#key) (except `boolean`)) key is changed, the existing scope is disposed, and the new one is set up.
+Whenever a reactive key is changed, the existing scope is disposed, and the new one is set up. The reactive keys should be **primitive** keys: `number | string | symbol | boolean`.
 
 The key might be **composed**, i.e. have a non-primitive **payload** associated with the primitive value:
 
