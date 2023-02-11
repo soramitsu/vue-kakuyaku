@@ -31,7 +31,7 @@ The core primitive type of the library is `PromiseStateAtomic<T>`. It describes 
 
 ```ts
 type PromiseStateAtomic<T> =
-  // uninit
+  // empty (uninitialised)
   | { rejected: null; fulfilled: null; pending: false }
   // pending
   | { rejected: null; fulfilled: null; pending: true }
@@ -62,7 +62,7 @@ Let's proceed to the utilities built around `PromiseStateAtomic<T>`.
 
 ### Basics with `usePromise()`
 
-This composable gives a basic reactive model over any promise you put into it:
+This composable returns a basic reactive model over a promise you put into it:
 
 ```ts
 import { computed } from 'vue'
@@ -90,7 +90,7 @@ clear()
 - The method to **set** a promise (`set(promise: Promise<T>)`) so its state is reflected in `state`
 - The method to **clear** (`clear()`) the composable to the initial empty state
 
-**Note**: if a new promise is `set` while the previous one is pending, the result of the previous is ignored.
+**Note**: if a new promise is `set` while the previous one is pending, the result of the previous promise is ignored.
 
 ### Repetitive action with `useTask()`
 
